@@ -4,6 +4,14 @@ class Vertex:
             self.x = x
             self.y = y
 
+class Segment:
+    def __init__(self,s1,s2):
+        self.s1 = s1
+        self.s2 = s2
+
+    def segmentCoordinates(self):
+        return [self.s1.x,self.s1.y],[self.s2.x,self.s2.y]
+
 class PolygonMesh:
     def __init__(self):
         self.Vertices = []
@@ -12,25 +20,18 @@ class PolygonMesh:
     def addVertex(self,x,y):
         self.Vertices.append(Vertex(x,y))
 
-    def polygonCoordinates(self):
-        return [[vertex.x,vertex.y] for vertex in self.Vertices]
+    def polygonCoordinates(self, ch = False):
+        if not ch :
+            return [[vertex.x,vertex.y] for vertex in self.Vertices]
+        else:
+            return [segment.segmentCoordinates() for segment in self.convexHull]
 
-    def chCoordinates(self):
-        return [[vertex.x,vertex.y] for vertex in self.convexHull]
 
     def qhull(self):
         points = self.polygonCoordinates()
         hull = ConvexHull(points)
 
-        hullvS = sorted(hull.vertices)
-        print("Real CH", hullvS)
-        hull_order = hullvS[0]
-        for hull_point in hullvS[1:-1]:
-            if hull_point[0] is hull_order[0]:
-                hull_order =[hull_point[1]] + hull_order
-            else:
-                hull_order = [hull_point[0]] + hull_order
+        for segment in hull.vertices:
+            self.convexHull.append(Segment(self.Vertices[segment[0]]
+                                           ,self.Vertices[segment[1]]))
 
-        print("Computed CH",hull_order)
-        for vertex in hull_order:
-            self.convexHull.append(self.Vertices[vertex])

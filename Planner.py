@@ -31,7 +31,8 @@ class Planner:
 
     def drawDebug(self):
         for shape in self.polygons:
-            pygame.draw.polygon(self.screen,self.debugColor,shape.chCoordinates(),5)
+            for line in shape.polygonCoordinates(ch=True):
+                pygame.draw.line(self.screen,self.debugColor,line[0],line[1],5)
 
     def drawPolygons(self):
         for shape in self.polygons:
