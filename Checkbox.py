@@ -11,10 +11,10 @@ class Checkbox():
 
 		self.checkboxRect = pygame.Rect(x, y, 15, 15)
 		self.crossRect = pygame.Rect(x + 2, y + 2, 11, 11)
-
+		self.color = pygame.Color(150, 150, 150)
 		if pygame.font:
 			font = pygame.font.Font(None, 22)
-			self.textDisp = font.render(self.text, 1, (75, 75, 75))
+			self.textDisp = font.render(self.text, 1, self.color)
 
 		self.textRect = self.textDisp.get_rect(x = x + 25, centery = y + 9)
 	

@@ -2,28 +2,55 @@ import pygame
 from Button import *
 from Checkbox import *
 from pygame.locals import *
-
+from PolygonMesh import *
 class Planner:
     def __init__(self):
+        self.currentPolygon = None
         menuPos = 0
         self.screen = pygame.display.get_surface()
         self.background = pygame.Surface(self.screen.get_size())
         self.background = self.background.convert()
-        self.background.fill((50, 50, 50))
+        self.background_color = (50,50,50)
+        self.shapeColor = (150,150,150)
+        self.background.fill(self.background_color)
         self.polygons = []
         self.buttons = {}
-
+        self.checkboxes = {}
+        self.polygon_build = False
         self.buttons["run"] = Button(0, menuPos, 100, 40, "RUN")
         self.buttons["polygon"] = Button(0, menuPos + 40, 100,40,"POLYGON")
         self.buttons["remove"] = Button(0, menuPos + 80, 100, 40, "REMOVE")
 
+        self.checkboxes['debug'] = Checkbox(110,0,"Debug Info")
+        self.checkboxes['point'] = Checkbox(110,20, "Robot is a point?")
 
         pygame.display.flip()
 
+
+    def drawPolygons(self):
+        for shape in self.polygons:
+            print(shape.toPGCoordinates())
+            pygame.draw.polygon(self.screen, self.shapeColor, shape.toPGCoordinates(), 0)
+        if self.polygon_build:
+            for vertex in self.current_polygon.Vertices:
+                    pygame.draw.circle(self.screen, self.shapeColor,(vertex.x, vertex.y),5)
+    def cursorUpdate(self):
+        mse = pygame.mouse.get_pos()
+        pygame.mouse.set_cursor(*pygame.cursors.arrow)
+
+        for button in self.buttons.values():
+            if button.onButton(*mse):
+                pygame.mouse.set_cursor(*pygame.cursors.tri_left)
+
+        for cb in self.checkboxes.values():
+            if cb.onCheckbox(*mse):
+                pygame.mouse.set_cursor(*pygame.cursors.tri_left)
+
+        if self.polygon_build:
+            pygame.mouse.set_cursor(*pygame.cursors.diamond)
+
     def update(self):
-
         mouse = pygame.mouse.get_pressed()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -33,31 +60,36 @@ class Planner:
                 mse = pygame.mouse.get_pos()
 
                 if self.buttons["polygon"].onButton(*mse):
-
+                    if not self.polygon_build:
+                        self.current_polygon = PolygonMesh()
+                    else:
+                        self.polygons.append(self.current_polygon)
+                    self.polygon_build = not self.polygon_build
                     return True,self
-
                 elif self.buttons["run"].onButton(*mse):
                     return True,self
-
                 elif self.buttons["remove"].onButton(*mse):
                     return True,self
-
-
+                elif self.checkboxes['debug'].onCheckbox(*mse):
+                    self.checkboxes['debug'].changeState()
+                    return True, self
+                elif self.checkboxes['point'].onCheckbox(*mse):
+                    self.checkboxes['point'].changeState()
+                    return True, self
+                elif self.polygon_build:
+                    self.current_polygon.addVertex(*mse)
             elif event.type == pygame.MOUSEMOTION:
-                mse = pygame.mouse.get_pos()
+                self.cursorUpdate()
 
-                pygame.mouse.set_cursor(*pygame.cursors.arrow)
-
-                for button in self.buttons.values():
-                    if button.onButton(*mse):
-                        pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
         self.screen.blit(self.background, self.background.get_rect(), self.background.get_rect())
-
-
-
         for button in self.buttons.values():
             button.update()
+
+        for checkbox in self.checkboxes.values():
+            checkbox.update()
+        self.drawPolygons()
+
 
         pygame.display.update()
 
