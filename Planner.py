@@ -12,6 +12,7 @@ class Planner:
         self.background = self.background.convert()
         self.background_color = (50,50,50)
         self.shapeColor = (150,150,150)
+        self.debugColor = (178,34,34)
         self.background.fill(self.background_color)
         self.polygons = []
         self.buttons = {}
@@ -28,13 +29,17 @@ class Planner:
         pygame.display.flip()
 
 
+    def drawDebug(self):
+        for shape in self.polygons:
+            pygame.draw.polygon(self.screen,self.debugColor,shape.chCoordinates(),5)
+
     def drawPolygons(self):
         for shape in self.polygons:
-            print(shape.toPGCoordinates())
-            pygame.draw.polygon(self.screen, self.shapeColor, shape.toPGCoordinates(), 0)
+            pygame.draw.polygon(self.screen, self.shapeColor, shape.polygonCoordinates(), 0)
         if self.polygon_build:
             for vertex in self.current_polygon.Vertices:
                     pygame.draw.circle(self.screen, self.shapeColor,(vertex.x, vertex.y),5)
+
     def cursorUpdate(self):
         mse = pygame.mouse.get_pos()
         pygame.mouse.set_cursor(*pygame.cursors.arrow)
@@ -66,7 +71,7 @@ class Planner:
                     if not self.polygon_build:
                         self.current_polygon = PolygonMesh()
                     else:
-                        self.current_polygon.convexHull()
+                        self.current_polygon.qhull()
                         self.polygons.append(self.current_polygon)
                     self.polygon_build = not self.polygon_build
                     return True,self
@@ -95,7 +100,8 @@ class Planner:
             checkbox.update()
         self.drawPolygons()
 
-
+        if self.checkboxes['debug'].isChecked():
+            self.drawDebug()
         pygame.display.update()
 
         return True, self
