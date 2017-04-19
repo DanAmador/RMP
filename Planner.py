@@ -17,6 +17,7 @@ class Planner:
         self.buttons = {}
         self.checkboxes = {}
         self.polygon_build = False
+        self.remove_flag = False
         self.buttons["run"] = Button(0, menuPos, 100, 40, "RUN")
         self.buttons["polygon"] = Button(0, menuPos + 40, 100,40,"POLYGON")
         self.buttons["remove"] = Button(0, menuPos + 80, 100, 40, "REMOVE")
@@ -49,6 +50,9 @@ class Planner:
         if self.polygon_build:
             pygame.mouse.set_cursor(*pygame.cursors.diamond)
 
+        if self.remove_flag:
+            pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+
     def update(self):
         mouse = pygame.mouse.get_pressed()
         for event in pygame.event.get():
@@ -58,17 +62,18 @@ class Planner:
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mse = pygame.mouse.get_pos()
-
                 if self.buttons["polygon"].onButton(*mse):
                     if not self.polygon_build:
                         self.current_polygon = PolygonMesh()
                     else:
+                        self.current_polygon.convexHull()
                         self.polygons.append(self.current_polygon)
                     self.polygon_build = not self.polygon_build
                     return True,self
                 elif self.buttons["run"].onButton(*mse):
                     return True,self
                 elif self.buttons["remove"].onButton(*mse):
+                    self.remove_flag = not self.remove_flag
                     return True,self
                 elif self.checkboxes['debug'].onCheckbox(*mse):
                     self.checkboxes['debug'].changeState()
