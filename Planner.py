@@ -10,7 +10,7 @@ class Planner:
         self.background = pygame.Surface(self.screen.get_size())
         self.background = self.background.convert()
         self.background.fill((50, 50, 50))
-
+        self.polygons = []
         self.buttons = {}
 
         self.buttons["run"] = Button(0, menuPos, 100, 40, "RUN")
