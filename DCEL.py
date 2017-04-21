@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#Copyright Angel Yanguas-Gil, 2008.
+# Copyright Angel Yanguas-Gil, 2008.
 
 """
 
@@ -10,7 +10,6 @@ vertices.
 __author__ = "Angel Yanguas-Gil"
 
 import math as m
-
 
 
 class Xygraph:
@@ -26,8 +25,6 @@ class Xygraph:
         """
         self.vl = vl
         self.el = el
-        print("vl",vl)
-        print("el",el)
         if self.vl != []:
             self.minmax()
 
@@ -44,17 +41,17 @@ class Xygraph:
         pmin, pmax = clipbox
         ind = []
         vlt = []
-        #Direct elimination of out of bounds edges and vertices
+        # Direct elimination of out of bounds edges and vertices
         for i in range(len(self.vl)):
             if self.vl[i][0] < pmin[0] or self.vl[i][1] < pmin[1] or \
                             self.vl[i][0] > pmax[0] or self.vl[i][1] > pmax[1]:
                 ind.append(i)
             else:
                 vlt.append(self.vl[i])
-        elt = filter((lambda x:(x[0] not in ind) and (x[1] not in ind)),
+        elt = filter((lambda x: (x[0] not in ind) and (x[1] not in ind)),
                      self.el)
-        li = filter((lambda x: x not in ind),range(len(self.vl)))
-        #We rename the indices in the trimmed edge list
+        li = filter((lambda x: x not in ind), range(len(self.vl)))
+        # We rename the indices in the trimmed edge list
         lf = range(len(self.vl) - len(ind))
         equiv = {}
         for i in range(len(li)):
@@ -70,7 +67,7 @@ class Xygraph:
                 y = equiv[elt[i][1]]
             else:
                 y = elt[i][1]
-            elt[i] = (x,y)
+            elt[i] = (x, y)
 
         self.vl = vlt
         self.el = elt
@@ -79,6 +76,7 @@ class Xygraph:
 
 class DcelError(Exception): pass
 
+
 class Vertex:
     """Minimal implementation of a vertex of a 2D dcel"""
 
@@ -86,23 +84,24 @@ class Vertex:
         self.x = px
         self.y = py
         self.hedgelist = []
+        self.coordinates = (self.x,self.y)
 
-    def sortincident(self):
+    def sort_incident(self):
         self.hedgelist.sort(hsort, reverse=True)
 
 
 class Hedge:
     """Minimal implementation of a half-edge of a 2D dcel"""
 
-    def __init__(self,v1,v2):
-        #The origin is defined as the vertex it points to
+    def __init__(self, v1, v2):
+        # The origin is defined as the vertex it points to
         self.origin = v2
         self.twin = None
         self.face = None
         self.nexthedge = None
-        self.angle = hangle(v2.x-v1.x, v2.y-v1.y)
+        self.angle = hangle(v2.x - v1.x, v2.y - v1.y)
         self.prevhedge = None
-        self.length = m.sqrt((v2.x-v1.x)**2 + (v2.y-v1.y)**2)
+        self.length = m.sqrt((v2.x - v1.x) ** 2 + (v2.y - v1.y) ** 2)
 
 
 class Face:
@@ -116,21 +115,21 @@ class Face:
     def area(self):
         h = self.wedge
         a = 0
-        while(not h.nexthedge is self.wedge):
+        while not h.nexthedge is self.wedge:
             p1 = h.origin
             p2 = h.nexthedge.origin
-            a += p1.x*p2.y - p2.x*p1.y
+            a += p1.x * p2.y - p2.x * p1.y
             h = h.nexthedge
 
         p1 = h.origin
         p2 = self.wedge.origin
-        a = (a + p1.x*p2.y - p2.x*p1.y)/2
+        a = (a + p1.x * p2.y - p2.x * p1.y) / 2
         return a
 
     def perimeter(self):
         h = self.wedge
         p = 0
-        while (not h.nexthedge is self.wedge):
+        while not h.nexthedge is self.wedge:
             p += h.length
             h = h.nexthedge
         return p
@@ -138,7 +137,7 @@ class Face:
     def vertexlist(self):
         h = self.wedge
         pl = [h.origin]
-        while(not h.nexthedge is self.wedge):
+        while not h.nexthedge is self.wedge:
             h = h.nexthedge
             pl.append(h.origin)
         return pl
@@ -149,7 +148,7 @@ class Face:
         h = self.wedge
         inside = False
         if lefton(h, p):
-            while(not h.nexthedge is self.wedge):
+            while not h.nexthedge is self.wedge:
                 h = h.nexthedge
                 if not lefton(h, p):
                     return False
@@ -162,7 +161,6 @@ class Dcel(Xygraph):
     """
     Implements a doubly-connected edge list
     """
-
     def __init__(self, vl=[], el=[], clip=None):
         Xygraph.__init__(self, vl, el)
         self.vertices = []
@@ -173,43 +171,48 @@ class Dcel(Xygraph):
                 self.clip(clip)
             self.build_dcel()
 
-
     def build_dcel(self):
         """
         Creates the dcel from the list of vertices and edges
         """
 
-        #Step 1: vertex list creation
-        for v in self.vl:
-            self.vertices.append(Vertex(v[0], v[1]))
+        # Step 1: vertex list creation
+        vertices_used = list(set(sum(self.el, ())))  # Eliminate duplicates and makes a list out of 'em
+        for index, v in enumerate(self.vl):
+            if index in vertices_used:
+                self.vertices.append(Vertex(v[0], v[1]))
 
-        #Step 2: hedge list creation. Assignment of twins and
-        #vertices
+        # Step 2: hedge list creation. Assignment of twins and
+        # vertices
+
         for e in self.el:
             if e[0] >= 0 and e[1] >= 0:
-                h1 = Hedge(self.vertices[e[0]], self.vertices[e[1]])
-                h2 = Hedge(self.vertices[e[1]], self.vertices[e[0]])
+                h1 = Hedge(self.vertices[e[0]],
+                           self.vertices[e[1]])
+                h2 = Hedge(self.vertices[e[1]],self.vertices[e[0]])
                 h1.twin = h2
                 h2.twin = h1
                 self.vertices[e[1]].hedgelist.append(h1)
                 self.vertices[e[0]].hedgelist.append(h2)
                 self.hedges.append(h2)
                 self.hedges.append(h1)
+            else:
+                print("oh shit boi wadup")
 
-        #Step 3: Identification of next and prev hedges
+        # Step 3: Identification of next and prev hedges
         for v in self.vertices:
-            v.sortincident()
+            v.sort_incident()
             l = len(v.hedgelist)
             if l < 2:
                 raise DcelError("Badly formed dcel: less than two hedges in vertex")
             else:
-                for i in range(l-1):
-                    v.hedgelist[i].nexthedge = v.hedgelist[i+1].twin
-                    v.hedgelist[i+1].prevhedge = v.hedgelist[i]
-                v.hedgelist[l-1].nexthedge = v.hedgelist[0].twin
-                v.hedgelist[0].prevhedge = v.hedgelist[l-1]
+                for i in range(l - 1):
+                    v.hedgelist[i].nexthedge = v.hedgelist[i + 1].twin
+                    v.hedgelist[i + 1].prevhedge = v.hedgelist[i]
+                v.hedgelist[l - 1].nexthedge = v.hedgelist[0].twin
+                v.hedgelist[0].prevhedge = v.hedgelist[l - 1]
 
-        #Step 4: Face assignment
+        # Step 4: Face assignment
         provlist = self.hedges[:]
         nf = 0
         nh = len(self.hedges)
@@ -217,22 +220,21 @@ class Dcel(Xygraph):
         while nh > 0:
             h = provlist.pop()
             nh -= 1
-            #We check if the hedge already points to a face
+            # We check if the hedge already points to a face
             if h.face == None:
                 f = Face()
                 nf += 1
-                #We link the hedge to the new face
+                # We link the hedge to the new face
                 f.wedge = h
                 f.wedge.face = f
-                #And we traverse the boundary of the new face
-                while (not h.nexthedge is f.wedge):
+                # And we traverse the boundary of the new face
+                while not h.nexthedge is f.wedge:
                     h = h.nexthedge
                     h.face = f
                 self.faces.append(f)
-        #And finally we have to determine the external face
+        # And finally we have to determine the external face
         for f in self.faces:
             f.external = f.area() < 0
-
 
     def findpoints(self, pl, onetoone=False):
         """Given a list of points pl, returns a list of
@@ -285,15 +287,14 @@ class Dcel(Xygraph):
         return len(self.vertices)
 
     def nedges(self):
-        return len(self.hedges)/2
+        return len(self.hedges) / 2
 
     def intersects_itself(self):
-        #TODO add plane sweep algorithm to check intersections
+        # TODO add plane sweep algorithm to check intersections
         return False
 
 
-
-#Misc. functions
+# Misc. functions
 def hsort(h1, h2):
     """Sorts two half edges counterclockwise"""
 
@@ -318,9 +319,9 @@ def area2(hedge, point):
     an external point"""
 
     pa = hedge.twin.origin
-    pb=hedge.origin
-    pc=point
-    return (pb.x - pa.x)*(pc[1] - pa.y) - (pc[0] - pa.x)*(pb.y - pa.y)
+    pb = hedge.origin
+    pc = point
+    return (pb.x - pa.x) * (pc[1] - pa.y) - (pc[0] - pa.x) * (pb.y - pa.y)
 
 
 def lefton(hedge, point):
@@ -329,15 +330,13 @@ def lefton(hedge, point):
     return area2(hedge, point) >= 0
 
 
-def hangle(dx,dy):
+def hangle(dx, dy):
     """Determines the angle with respect to the x axis of a segment
     of coordinates dx and dy
     """
 
-    l = m.sqrt(dx*dx + dy*dy)
+    l = m.sqrt(dx * dx + dy * dy)
     if dy > 0:
-        return m.acos(dx/l)
+        return m.acos(dx / l)
     else:
-        return 2*m.pi - m.acos(dx/l)
-
-
+        return 2 * m.pi - m.acos(dx / l)

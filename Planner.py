@@ -43,11 +43,12 @@ class Planner:
     def debug_draw(self):
         for shape in self.polygons:
             for line in shape.polygon_coordinates(ch=True):
-                pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
+                pygame.draw.line(self.screen,self.debugColor,line[0],line[1],5)
 
     def draw_polygons(self):
         for shape in self.polygons:
             pygame.draw.polygon(self.screen, self.shapeColor, shape.polygon_coordinates(), 0)
+
         if self.polygon_build:
             for vertex in self.current_polygon.Vertices:
                 pygame.draw.circle(self.screen, self.shapeColor, (vertex.x, vertex.y), 5)
@@ -85,15 +86,13 @@ class Planner:
                         self.current_dcel = Dcel(*self.current_polygon.dcel_info())
                         if not self.current_dcel.intersects_itself():
                             self.current_polygon.qhull()
-                            self.polygons.append({
-                                'convex_hull' : Dcel(*self.current_polygon.dcel_info(ch=True)),
-                                'polygon': self.current_dcel
-                            })
                             self.dcels.append(self.current_dcel)
+                            self.polygons.append(self.current_polygon)
                         else:
                             print("Polygon intersects itself, create new polygon")
                     self.polygon_build = not self.polygon_build
                     return True, self
+
                 elif self.buttons["run"].on_button(*mse):
                     return True, self
 
