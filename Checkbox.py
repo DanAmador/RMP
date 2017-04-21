@@ -1,54 +1,55 @@
 #!/usr/bin/python
 
 import pygame
-from pygame.locals import *
 
-class Checkbox():
-	def __init__(self, x, y, text, checked = False):
-		self.screen = pygame.display.get_surface()
-		self.checked = checked
-		self.text = text
 
-		self.checkboxRect = pygame.Rect(x, y, 15, 15)
-		self.crossRect = pygame.Rect(x + 2, y + 2, 11, 11)
-		self.color = pygame.Color(150, 150, 150)
-		if pygame.font:
-			font = pygame.font.Font(None, 22)
-			self.textDisp = font.render(self.text, 1, self.color)
+class Checkbox:
+    def __init__(self, x, y, text, checked=False):
+        self.screen = pygame.display.get_surface()
+        self.checked = checked
+        self.text = text
 
-		self.textRect = self.textDisp.get_rect(x = x + 25, centery = y + 9)
-	
-	def update(self):
-		pygame.draw.rect(self.screen, (150, 150, 150), self.checkboxRect)
+        self.checkboxRect = pygame.Rect(x, y, 15, 15)
+        self.crossRect = pygame.Rect(x + 2, y + 2, 11, 11)
+        self.color = pygame.Color(150, 150, 150)
+        if pygame.font:
+            font = pygame.font.Font(None, 22)
+            self.textDisp = font.render(self.text, 1, self.color)
 
-		if self.checked:
-			pygame.draw.rect(self.screen, (75, 75, 75), self.crossRect)
+        self.textRect = self.textDisp.get_rect(x=x + 25, centery=y + 9)
 
-		self.screen.blit(self.textDisp, self.textRect)
+    def update(self):
+        pygame.draw.rect(self.screen, (150, 150, 150), self.checkboxRect)
 
-	def onCheckbox(self, x, y):
-		if x >= self.getX() and x <= (self.getX() + 25 + self.textRect.w) and y >= self.getY() and y <= (self.getY() + 15):
-			return True
-		else:
-			return False
+        if self.checked:
+            pygame.draw.rect(self.screen, (75, 75, 75), self.crossRect)
 
-	def changeState(self):
-		if self.isChecked():
-			self.uncheck()
-		else:
-			self.check()
+        self.screen.blit(self.textDisp, self.textRect)
 
-	def isChecked(self):
-		return self.checked
+    def on_checkbox(self, x, y):
+        if self.get_x() <= x <= (self.get_x() + 25 + self.textRect.w) and self.get_y() <= y <= (
+                    self.get_y() + 15):
+            return True
+        else:
+            return False
 
-	def check(self):
-		self.checked = True
+    def change_state(self):
+        if self.is_checked():
+            self.uncheck()
+        else:
+            self.check()
 
-	def uncheck(self):
-		self.checked = False
+    def is_checked(self):
+        return self.checked
 
-	def getX(self):
-		return self.checkboxRect.x
+    def check(self):
+        self.checked = True
 
-	def getY(self):
-		return self.checkboxRect.y
+    def uncheck(self):
+        self.checked = False
+
+    def get_x(self):
+        return self.checkboxRect.x
+
+    def get_y(self):
+        return self.checkboxRect.y
