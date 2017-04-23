@@ -6,6 +6,7 @@
 xygraph implements a 2D map formed by undirected edges between
 vertices.
 """
+from PolygonMesh import Segment
 
 __author__ = "Angel Yanguas-Gil"
 
@@ -84,10 +85,10 @@ class Vertex:
         self.x = px
         self.y = py
         self.hedgelist = []
-        self.coordinates = (self.x,self.y)
+        self.coordinates = (self.x, self.y)
 
     def sort_incident(self):
-        self.hedgelist.sort(hsort, reverse=True)
+        self.hedgelist.sort(key=hsort, reverse=True)
 
 
 class Hedge:
@@ -161,6 +162,7 @@ class Dcel(Xygraph):
     """
     Implements a doubly-connected edge list
     """
+
     def __init__(self, vl=[], el=[], clip=None):
         Xygraph.__init__(self, vl, el)
         self.vertices = []
@@ -177,10 +179,8 @@ class Dcel(Xygraph):
         """
 
         # Step 1: vertex list creation
-        vertices_used = list(set(sum(self.el, ())))  # Eliminate duplicates and makes a list out of 'em
-        for index, v in enumerate(self.vl):
-            if index in vertices_used:
-                self.vertices.append(Vertex(v[0], v[1]))
+        for v in self.vl:
+            self.vertices.append(Vertex(v[0], v[1]))
 
         # Step 2: hedge list creation. Assignment of twins and
         # vertices
@@ -189,7 +189,7 @@ class Dcel(Xygraph):
             if e[0] >= 0 and e[1] >= 0:
                 h1 = Hedge(self.vertices[e[0]],
                            self.vertices[e[1]])
-                h2 = Hedge(self.vertices[e[1]],self.vertices[e[0]])
+                h2 = Hedge(self.vertices[e[1]], self.vertices[e[0]])
                 h1.twin = h2
                 h2.twin = h1
                 self.vertices[e[1]].hedgelist.append(h1)
@@ -201,7 +201,7 @@ class Dcel(Xygraph):
 
         # Step 3: Identification of next and prev hedges
         for v in self.vertices:
-            v.sort_incident()
+            #v.sort_incident()
             l = len(v.hedgelist)
             if l < 2:
                 raise DcelError("Badly formed dcel: less than two hedges in vertex")
@@ -289,13 +289,9 @@ class Dcel(Xygraph):
     def nedges(self):
         return len(self.hedges) / 2
 
-    def intersects_itself(self):
-        # TODO add plane sweep algorithm to check intersections
-        return False
-
 
 # Misc. functions
-def hsort(h1, h2):
+def hsort(h1, h2) -> int:
     """Sorts two half edges counterclockwise"""
 
     if h1.angle < h2.angle:

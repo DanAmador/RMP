@@ -1,9 +1,8 @@
-import pygame
-from DCEL import Dcel, DcelError
 from Button import *
 from Checkbox import *
-from pygame.locals import *
+from DCEL import Dcel
 from PolygonMesh import *
+from poly_point_isect import isect_polygon
 
 
 class Planner:
@@ -82,9 +81,11 @@ class Planner:
                     if not self.polygon_build:
                         self.current_polygon = PolygonMesh()
                     else:
-                        # TODO create intersection algorithm with dcel
-                        self.current_dcel = Dcel(*self.current_polygon.dcel_info())
-                        if not self.current_dcel.intersects_itself():
+                        vertex, edge = self.current_polygon.dcel_info()
+                        intersections = isect_polygon(vertex)
+
+                        if len(intersections) == 0:
+                            self.current_dcel = Dcel(*self.current_polygon.dcel_info())
                             self.current_polygon.qhull()
                             self.dcels.append(self.current_dcel)
                             self.polygons.append(self.current_polygon)

@@ -1,5 +1,5 @@
 from pyhull.convex_hull import ConvexHull
-from DCEL import Vertex
+import numpy as np
 
 
 class Segment:
@@ -7,6 +7,19 @@ class Segment:
         self.s1 = s1
         self.s2 = s2
         self.segment_coordinates = [self.s1.x, self.s1.y], [self.s2.x, self.s2.y]
+
+    def inverse(self):
+        return Segment(self.s2, self.s1)
+
+    def ccw(self, A, B, C):
+        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
+
+    def intersect(self, s2):
+        A = self.s1
+        B = self.s2
+        C = s2.s1
+        D = s2.s2
+        return self.ccw(A, C, D) != self.ccw(B, C, D) and self.ccw(A, B, C) != self.ccw(A, B, D)
 
 
 class PolygonMesh:
@@ -16,9 +29,10 @@ class PolygonMesh:
         self.ch_poly = []
 
     def add_vertex(self, x, y):
+        from DCEL import Vertex
         self.Vertices.append(Vertex(x, y))
 
-    def dcel_info(self, ch=False):
+    def dcel_info(self, ch=False) -> tuple:
         """
         Creates and returns a tuple for the polygon or the convex hull
         Parameters:
@@ -32,14 +46,13 @@ class PolygonMesh:
             return [(vertex.x, vertex.y) for vertex in self.Vertices], [(index, (index + 1) % len(self.Vertices)) for
                                                                         index, value in enumerate(self.Vertices)]
         else:
-            return self.convexHull.points, [(el[0],el[1]) for el in self.convexHull.vertices]
+            return self.convexHull.points, [(el[0], el[1]) for el in self.convexHull.vertices]
 
-    def polygon_coordinates(self,ch=False):
-        return [[el.x, el.y] for el in self.Vertices] if not ch else [segment.segment_coordinates for segment in self.ch_poly]
-
+    def polygon_coordinates(self, ch=False) -> list:
+        return [[el.x, el.y] for el in self.Vertices] if not ch else [segment.segment_coordinates for segment in
+                                                                      self.ch_poly]
 
     def qhull(self):
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:
-            self.ch_poly.append(Segment(self.Vertices[segment[0]],self.Vertices[segment[1]]))
-
+            self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
