@@ -11,16 +11,6 @@ class Segment:
     def inverse(self):
         return Segment(self.s2, self.s1)
 
-    def ccw(self, A, B, C):
-        return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
-
-    def intersect(self, s2):
-        A = self.s1
-        B = self.s2
-        C = s2.s1
-        D = s2.s2
-        return self.ccw(A, C, D) != self.ccw(B, C, D) and self.ccw(A, B, C) != self.ccw(A, B, D)
-
 
 class PolygonMesh:
     def __init__(self):

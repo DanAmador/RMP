@@ -88,7 +88,7 @@ class Vertex:
         self.coordinates = (self.x, self.y)
 
     def sort_incident(self):
-        self.hedgelist.sort(key=hsort, reverse=True)
+        self.hedgelist.sort(key=cmp_to_key(hsort), reverse=True)
 
 
 class Hedge:
@@ -113,7 +113,7 @@ class Face:
         self.data = None
         self.external = None
 
-    def area(self):
+    def area(self) -> float:
         h = self.wedge
         a = 0
         while not h.nexthedge is self.wedge:
@@ -127,7 +127,7 @@ class Face:
         a = (a + p1.x * p2.y - p2.x * p1.y) / 2
         return a
 
-    def perimeter(self):
+    def perimeter(self) -> int:
         h = self.wedge
         p = 0
         while not h.nexthedge is self.wedge:
@@ -135,7 +135,7 @@ class Face:
             h = h.nexthedge
         return p
 
-    def vertexlist(self):
+    def vertexlist(self) -> list:
         h = self.wedge
         pl = [h.origin]
         while not h.nexthedge is self.wedge:
@@ -143,7 +143,7 @@ class Face:
             pl.append(h.origin)
         return pl
 
-    def isinside(self, p):
+    def isinside(self, p) -> bool:
         """Determines whether a point is inside a face"""
 
         h = self.wedge
@@ -201,7 +201,7 @@ class Dcel(Xygraph):
 
         # Step 3: Identification of next and prev hedges
         for v in self.vertices:
-            #v.sort_incident()
+            v.sort_incident()
             l = len(v.hedgelist)
             if l < 2:
                 raise DcelError("Badly formed dcel: less than two hedges in vertex")
@@ -302,6 +302,34 @@ def hsort(h1, h2) -> int:
         return 0
 
 
+def cmp_to_key(mycmp):
+    'Convert a cmp= function into a key= function'
+
+    class K(object):
+        def __init__(self, obj, *args):
+            self.obj = obj
+
+        def __lt__(self, other):
+            return mycmp(self.obj, other.obj) < 0
+
+        def __gt__(self, other):
+            return mycmp(self.obj, other.obj) > 0
+
+        def __eq__(self, other):
+            return mycmp(self.obj, other.obj) == 0
+
+        def __le__(self, other):
+            return mycmp(self.obj, other.obj) <= 0
+
+        def __ge__(self, other):
+            return mycmp(self.obj, other.obj) >= 0
+
+        def __ne__(self, other):
+            return mycmp(self.obj, other.obj) != 0
+
+    return K
+
+
 def checkhedges(hl):
     """Consistency check of a hedge list: nexthedge, prevhedge"""
 
@@ -310,7 +338,7 @@ def checkhedges(hl):
             raise DcelError("Problems with an orphan hedge...")
 
 
-def area2(hedge, point):
+def area2(hedge, point) -> float:
     """Determines the area of the triangle formed by a hedge and
     an external point"""
 

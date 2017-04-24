@@ -42,11 +42,11 @@ class Planner:
     def debug_draw(self):
         for shape in self.polygons:
             for line in shape.polygon_coordinates(ch=True):
-                pygame.draw.line(self.screen,self.debugColor,line[0],line[1],5)
+                pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
 
     def draw_polygons(self):
         for shape in self.polygons:
-            pygame.draw.polygon(self.screen, self.shapeColor, shape.polygon_coordinates(), 0)
+            pygame.draw.polygon(self.screen, self.shapeColor, shape.dcel_info()[0], 0)
 
         if self.polygon_build:
             for vertex in self.current_polygon.Vertices:
@@ -99,6 +99,7 @@ class Planner:
 
                 elif self.buttons["remove"].on_button(*mse):
                     self.remove_flag = not self.remove_flag
+
                     return True, self
 
                 elif self.checkboxes['debug'].on_checkbox(*mse):
