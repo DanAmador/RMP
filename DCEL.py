@@ -135,7 +135,7 @@ class Face:
             h = h.nexthedge
         return p
 
-    def vertexlist(self) -> list:
+    def vertex_list(self) -> list:
         h = self.wedge
         pl = [h.origin]
         while not h.nexthedge is self.wedge:
@@ -143,9 +143,8 @@ class Face:
             pl.append(h.origin)
         return pl
 
-    def isinside(self, p) -> bool:
+    def is_inside(self, p) -> bool:
         """Determines whether a point is inside a face"""
-
         h = self.wedge
         inside = False
         if lefton(h, p):
@@ -200,11 +199,11 @@ class Dcel(Xygraph):
                 print("oh shit boi wadup")
 
         # Step 3: Identification of next and prev hedges
-        for v in self.vertices:
+        for index, v in enumerate(self.vertices):
             v.sort_incident()
             l = len(v.hedgelist)
             if l < 2:
-                raise DcelError("Badly formed dcel: less than two hedges in vertex")
+                raise DcelError("Badly formed dcel: less than two hedges in vertex:" + str(index))
             else:
                 for i in range(l - 1):
                     v.hedgelist[i].nexthedge = v.hedgelist[i + 1].twin
@@ -251,7 +250,7 @@ class Dcel(Xygraph):
                 for f in fl:
                     if f.external:
                         continue
-                    if f.isinside(p):
+                    if f.is_inside(p):
                         fl.remove(f)
                         found = True
                         ans.append(f)
@@ -265,7 +264,7 @@ class Dcel(Xygraph):
                 for f in self.faces:
                     if f.external:
                         continue
-                    if f.isinside(p):
+                    if f.is_inside(p):
                         found = True
                         ans.append(f)
                         break
@@ -346,6 +345,22 @@ def area2(hedge, point) -> float:
     pb = hedge.origin
     pc = point
     return (pb.x - pa.x) * (pc[1] - pa.y) - (pc[0] - pa.x) * (pb.y - pa.y)
+
+
+def is_in_convex_polygon(point, polygons):
+    pos, neg = 0, 0
+    for i, polygon in enumerate(polygons):
+
+        s1 = polygons[i]
+        # Cross Product
+        d = (point[0] - s1[0][0]) * (s1[1][1] - s1[0][1]) - (point[1] - s1[0][1]) * (s1[1][0] - s1[0][0])
+
+        if d > 0: pos += 1
+        if d < 0: neg += 1
+
+        if pos > 0 and neg > 0:
+            return False
+    return True
 
 
 def lefton(hedge, point):

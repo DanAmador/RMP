@@ -1,6 +1,6 @@
 from Button import *
 from Checkbox import *
-from DCEL import Dcel
+from DCEL import Dcel, Vertex, is_in_convex_polygon
 from PolygonMesh import *
 from poly_point_isect import isect_polygon
 
@@ -24,7 +24,6 @@ class Planner:
         self.polygon_build = False
         self.remove_flag = False
 
-        self.dcels = []
         self.current_dcel = None
 
         self.buttons = {}
@@ -71,6 +70,7 @@ class Planner:
             pygame.mouse.set_cursor(*pygame.cursors.broken_x)
 
     def update(self):
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -81,16 +81,36 @@ class Planner:
                     if not self.polygon_build:
                         self.current_polygon = PolygonMesh()
                     else:
-                        vertex, edge = self.current_polygon.dcel_info()
-                        intersections = isect_polygon(vertex)
+                        if len(self.current_polygon.Vertices) >= 3:
+                            vertex, edge = self.current_polygon.dcel_info()
+                            intersections = isect_polygon(vertex)
 
-                        if len(intersections) == 0:
-                            self.current_dcel = Dcel(*self.current_polygon.dcel_info())
-                            self.current_polygon.qhull()
-                            self.dcels.append(self.current_dcel)
-                            self.polygons.append(self.current_polygon)
+                            if len(intersections) == 0:
+                                new_vertices, new_edges = [], []
+                                total_offset = 0
+                                self.polygons.append(self.current_polygon)
+
+                                """
+                                Creates edge relation to vertices needed for a DCEL using the polygon list
+                                """
+                                for index, p in enumerate(self.polygons):
+                                    curr_vert, curr_edges = p.dcel_info()
+
+                                    if index > 0:
+                                        for edge in curr_edges:
+                                            new_edges.append((edge[0] + total_offset, edge[1] + total_offset))
+                                    else:
+                                        new_edges = curr_edges
+
+                                    new_vertices = new_vertices + curr_vert
+                                    total_offset += len(curr_edges)
+
+                                self.current_dcel = Dcel(new_vertices, new_edges)
+                                self.current_polygon.qhull()
+                            else:
+                                print("Polygon intersects itself, create new polygon")
                         else:
-                            print("Polygon intersects itself, create new polygon")
+                            int("Polygon too small")
                     self.polygon_build = not self.polygon_build
                     return True, self
 
@@ -98,6 +118,7 @@ class Planner:
                     return True, self
 
                 elif self.buttons["remove"].on_button(*mse):
+
                     self.remove_flag = not self.remove_flag
 
                     return True, self
@@ -113,6 +134,12 @@ class Planner:
                 elif self.polygon_build:
                     self.current_polygon.add_vertex(*mse)
 
+                elif self.remove_flag:
+                    for index, polygon in enumerate(self.polygons):
+                        if is_in_convex_polygon(mse, polygon.polygon_coordinates(ch=True)):
+                            self.remove_flag = not self.remove_flag
+                            print("Removing polygon", index + 1)
+                            self.polygons.pop(index)
             elif event.type == pygame.MOUSEMOTION:
                 self.cursor_update()
 
