@@ -1,12 +1,13 @@
 from pyhull.convex_hull import ConvexHull
-import numpy as np
-
+from math import sqrt
 
 class Segment:
     def __init__(self, s1, s2):
         self.s1 = s1
         self.s2 = s2
         self.segment_coordinates = [self.s1.x, self.s1.y], [self.s2.x, self.s2.y]
+        self.length = sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2)
+        self.middle_point = ((s1.x + s2.x) / 2, (s1.y + s2.y) / 2)
 
     def inverse(self):
         return Segment(self.s2, self.s1)
@@ -46,3 +47,8 @@ class PolygonMesh:
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:
             self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
+
+    def clear(self):
+        self.Vertices = []
+        self.convexHull = []
+        self.ch_poly = []

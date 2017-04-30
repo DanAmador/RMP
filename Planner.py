@@ -1,8 +1,10 @@
+import copy
+
 from Button import *
 from Checkbox import *
 from DCEL import Dcel, Vertex, is_in_convex_polygon
 from PolygonMesh import *
-from poly_point_isect import isect_polygon
+from poly_point_isect import isect_polygon, isect_segments
 
 
 class Planner:
@@ -15,11 +17,15 @@ class Planner:
         self.background_color = (50, 50, 50)
         self.shapeColor = (150, 150, 150)
         self.debugColor = (178, 34, 34)
+        self.intersect_color = (0, 0, 255)
 
         self.background.fill(self.background_color)
 
         self.polygons = []
         self.currentPolygon = None
+
+        self.intersections = []
+        self.intersection_segments = []
 
         self.polygon_build = False
         self.remove_flag = False
@@ -38,10 +44,26 @@ class Planner:
 
         pygame.display.flip()
 
+    def create_border_polygon(self):
+        x, y = self.screen.get_size()
+        border_poly = PolygonMesh()
+        border_poly.add_vertex(0, 0)
+        border_poly.add_vertex(x, 0)
+        border_poly.add_vertex(x, y)
+        border_poly.add_vertex(0, y)
+
+        return border_poly
+
     def debug_draw(self):
         for shape in self.polygons:
             for line in shape.polygon_coordinates(ch=True):
                 pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
+
+        for inter in self.intersections:
+            pygame.draw.circle(self.screen, self.intersect_color, inter, 5)
+
+        for segment in self.intersection_segments:
+            pygame.draw.line(self.screen, (0, 255, 0), segment[0], segment[1], 5)
 
     def draw_polygons(self):
         for shape in self.polygons:
@@ -86,24 +108,9 @@ class Planner:
                             intersections = isect_polygon(vertex)
 
                             if len(intersections) == 0:
-                                new_vertices, new_edges = [], []
-                                total_offset = 0
                                 self.polygons.append(self.current_polygon)
 
-                                """
-                                Creates edge relation to vertices needed for a DCEL using the polygon list
-                                """
-                                for index, p in enumerate(self.polygons):
-                                    curr_vert, curr_edges = p.dcel_info()
-
-                                    if index > 0:
-                                        for edge in curr_edges:
-                                            new_edges.append((edge[0] + total_offset, edge[1] + total_offset))
-                                    else:
-                                        new_edges = curr_edges
-
-                                    new_vertices = new_vertices + curr_vert
-                                    total_offset += len(curr_edges)
+                                new_vertices, new_edges = get_vertex_edge_relation(self.polygons)
 
                                 self.current_dcel = Dcel(new_vertices, new_edges)
                                 self.current_polygon.qhull()
@@ -115,6 +122,9 @@ class Planner:
                     return True, self
 
                 elif self.buttons["run"].on_button(*mse):
+                    # TODO ADD
+                    if self.checkboxes['point']:
+                        self.compute_free_space()
                     return True, self
 
                 elif self.buttons["remove"].on_button(*mse):
@@ -140,6 +150,7 @@ class Planner:
                             self.remove_flag = not self.remove_flag
                             print("Removing polygon", index + 1)
                             self.polygons.pop(index)
+
             elif event.type == pygame.MOUSEMOTION:
                 self.cursor_update()
 
@@ -156,3 +167,74 @@ class Planner:
         pygame.display.update()
 
         return True, self
+
+    def compute_free_space(self):
+        poly_copy = self.polygons[:]
+        self.intersection_segments = []
+        x, y = self.screen.get_size()
+        vertex_segments = []
+        for polygon in poly_copy:
+            for vertex in polygon.Vertices:
+                segment_poly_mesh = PolygonMesh()
+                segment_poly_mesh.add_vertex(vertex.x, - 2)
+                segment_poly_mesh.add_vertex(vertex.x, y + 2)
+                vertex_segments.append(segment_poly_mesh)
+
+        for v in vertex_segments:
+            poly_copy.append(v)
+
+        segments = []
+        poly_copy.append(self.create_border_polygon())
+
+        new_vertices, new_edges = get_vertex_edge_relation(poly_copy)
+        for edge in new_edges:
+            segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
+
+        intersection_points = [(int(round(inter[0])), int(round(inter[1]))) for inter in isect_segments(segments)]
+
+        self.intersections = intersection_points
+        print(new_vertices)
+        intersection_segments = []
+
+        poly_copy = self.polygons[:]
+        poly_copy.append(self.create_border_polygon())
+        for p in poly_copy:
+            print(p.polygon_coordinates())
+        new_vertices, new_edges = get_vertex_edge_relation(poly_copy)
+        for edge in new_edges:
+            intersection_segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
+
+        for intersection in intersection_points:
+            # Decimal rounding range check
+            vertices_at_x = [vertex for vertex in new_vertices if vertex[0] - 2 < intersection[0] < vertex[0] + 2]
+            print("Intersection at ", intersection, " has possible vertices at", vertices_at_x)
+
+            for segment_start in vertices_at_x:
+                if segment_start is not intersection:
+                    segment_intersection_points = isect_segments(intersection_segments + [(segment_start, intersection)])
+                    print("Segment:", segment_start, intersection, " has intersections at ",segment_intersection_points)
+                    # TODO calculate segments that correspond to available intersections
+                    if len(segment_intersection_points) is 0:
+                        self.intersection_segments.append((segment_start, intersection))
+                else:
+                    print("lolwat")
+
+def get_vertex_edge_relation(polygons):
+    """
+    Creates edge relation to vertices needed for a DCEL using the polygon list
+    """
+    new_edges, new_vertices = [], []
+    total_offset = 0
+
+    for index, p in enumerate(polygons):
+        curr_vert, curr_edges = p.dcel_info()
+
+        if index > 0:
+            for edge in curr_edges:
+                new_edges.append((edge[0] + total_offset, edge[1] + total_offset))
+        else:
+            new_edges = curr_edges
+
+        new_vertices = new_vertices + curr_vert
+        total_offset += len(curr_edges)
+    return new_vertices, new_edges
