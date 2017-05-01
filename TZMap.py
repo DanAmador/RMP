@@ -32,7 +32,7 @@ class TZMap:
         if node is None:
             node = self.root
 
-        if node.isLeaf and node.name is None:
+        if node.is_leaf and node.name is None:
             id_num += 1
             node.name = 'T' + str(id_num)
 

@@ -10,13 +10,8 @@ from PolygonMesh import Point, Segment
 from TZMap import TZMap
 
 
-def build_Tmap(segments, bounding_box_tuple):
-    """
-    Main function that asks user for the input file name
-    and reads in the coordinates. The trapezoidal map is
-    then built with these coordinates.
-    :return: None
-    """
+def build_tmap(segments, bounding_box_tuple):
+
     x1, y1, x2, y2 = bounding_box_tuple
     line_segments = []
     id_num = 1
@@ -78,16 +73,16 @@ def update_map_for_one_trapezoid(tzMap, trapezoid, segment):
     :param segment: new segment to be added to the map
     :return: None
     """
-    left_trapezoid = TrapezoidNode(trapezoid.topSegment, trapezoid.bottomSegment, trapezoid.leftPoint,
-                                   segment.leftPoint)
-    top_trapezoid = TrapezoidNode(trapezoid.topSegment, segment, segment.leftPoint, segment.rightPoint)
-    bottom_trapezoid = TrapezoidNode(segment, trapezoid.bottomSegment, segment.leftPoint, segment.rightPoint)
-    right_trapezoid = TrapezoidNode(trapezoid.topSegment, trapezoid.bottomSegment, segment.rightPoint,
-                                    trapezoid.rightPoint)
+    left_trapezoid = TrapezoidNode(trapezoid.top_segment, trapezoid.bottom_segment, trapezoid.left_point,
+                                   segment.left_point)
+    top_trapezoid = TrapezoidNode(trapezoid.top_segment, segment, segment.left_point, segment.right_point)
+    bottom_trapezoid = TrapezoidNode(segment, trapezoid.bottom_segment, segment.left_point, segment.right_point)
+    right_trapezoid = TrapezoidNode(trapezoid.top_segment, trapezoid.bottom_segment, segment.right_point,
+                                    trapezoid.right_point)
 
     seg_node = YNode(segment, top_trapezoid, bottom_trapezoid)
-    q = XNode(segment.rightPoint, seg_node, right_trapezoid)
-    p = XNode(segment.leftPoint, left_trapezoid, q)
+    q = XNode(segment.right_point, seg_node, right_trapezoid)
+    p = XNode(segment.left_point, left_trapezoid, q)
     trapezoid.replace_position_with(tzMap, p)
 
 
@@ -107,57 +102,57 @@ def update_map_for_many_trapezoids(tzMap, intersectingTrapezoids, segment):
 
     for trapezoid in intersectingTrapezoids:
 
-        if trapezoid.contains_point(segment.leftPoint):
+        if trapezoid.contains_point(segment.left_point):
             # case where the left endpoint of the new segment lies in the trapezoid
-            left_trapezoid = TrapezoidNode(trapezoid.topSegment, trapezoid.bottomSegment, trapezoid.leftPoint,
-                                           segment.leftPoint)
-            if segment.isPointAbove(trapezoid.rightPoint):
-                upper_mid_trapezoid = TrapezoidNode(trapezoid.topSegment, segment, segment.leftPoint,
-                                                    trapezoid.rightPoint)
-                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottomSegment, segment.leftPoint, None)
+            left_trapezoid = TrapezoidNode(trapezoid.top_segment, trapezoid.bottom_segment, trapezoid.left_point,
+                                           segment.left_point)
+            if segment.isPointAbove(trapezoid.right_point):
+                upper_mid_trapezoid = TrapezoidNode(trapezoid.top_segment, segment, segment.left_point,
+                                                    trapezoid.right_point)
+                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottom_segment, segment.left_point, None)
                 merge_upper = False
             else:
-                upper_mid_trapezoid = TrapezoidNode(trapezoid.topSegment, segment, segment.leftPoint, None)
-                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottomSegment, segment.leftPoint,
-                                                    trapezoid.rightPoint)
+                upper_mid_trapezoid = TrapezoidNode(trapezoid.top_segment, segment, segment.left_point, None)
+                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottom_segment, segment.left_point,
+                                                    trapezoid.right_point)
                 merge_upper = True
 
-            if segment.leftPoint.seen:
+            if segment.left_point.seen:
                 continue
             seg_node = YNode(segment, upper_mid_trapezoid, lower_mid_trapezoid)
-            p = XNode(segment.leftPoint, left_trapezoid, seg_node)
+            p = XNode(segment.left_point, left_trapezoid, seg_node)
             trapezoid.replace_position_with(tzMap, p)
 
-        elif trapezoid.contains_point(segment.rightPoint):
+        elif trapezoid.contains_point(segment.right_point):
             # case where the right endpoint of the new segment lies in the trapezoid
-            right_trapezoid = TrapezoidNode(trapezoid.topSegment, trapezoid.bottomSegment, segment.rightPoint,
-                                            trapezoid.rightPoint)
+            right_trapezoid = TrapezoidNode(trapezoid.top_segment, trapezoid.bottom_segment, segment.right_point,
+                                            trapezoid.right_point)
             if merge_upper:
-                upper_mid_trapezoid.rightPoint = segment.rightPoint
-                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottomSegment, trapezoid.leftPoint,
-                                                    segment.rightPoint)
+                upper_mid_trapezoid.right_point = segment.right_point
+                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottom_segment, trapezoid.left_point,
+                                                    segment.right_point)
             else:
-                upper_mid_trapezoid = TrapezoidNode(trapezoid.topSegment, segment, trapezoid.leftPoint,
-                                                    segment.rightPoint)
-                lower_mid_trapezoid.rightPoint = segment.rightPoint
-            if segment.rightPoint.seen:
+                upper_mid_trapezoid = TrapezoidNode(trapezoid.top_segment, segment, trapezoid.left_point,
+                                                    segment.right_point)
+                lower_mid_trapezoid.right_point = segment.right_point
+            if segment.right_point.seen:
                 continue
             seg_node = YNode(segment, upper_mid_trapezoid, lower_mid_trapezoid)
-            q = XNode(segment.rightPoint, seg_node, right_trapezoid)
+            q = XNode(segment.right_point, seg_node, right_trapezoid)
             trapezoid.replace_position_with(tzMap, q)
 
         else:
             # case where the no endpoint of the new segment lies in the trapezoid
             if merge_upper:
-                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottomSegment, trapezoid.leftPoint, None)
+                lower_mid_trapezoid = TrapezoidNode(segment, trapezoid.bottom_segment, trapezoid.left_point, None)
             else:
-                upper_mid_trapezoid = TrapezoidNode(trapezoid.topSegment, segment, trapezoid.leftPoint, None)
+                upper_mid_trapezoid = TrapezoidNode(trapezoid.top_segment, segment, trapezoid.left_point, None)
 
-            if segment.isPointAbove(trapezoid.rightPoint):
-                upper_mid_trapezoid.rightPoint = trapezoid.rightPoint
+            if segment.isPointAbove(trapezoid.right_point):
+                upper_mid_trapezoid.right_point = trapezoid.right_point
                 merge_upper = False
             else:
-                lower_mid_trapezoid.rightPoint = trapezoid.rightPoint
+                lower_mid_trapezoid.right_point = trapezoid.right_point
                 merge_upper = True
 
             seg_node = YNode(segment, upper_mid_trapezoid, lower_mid_trapezoid)
@@ -175,21 +170,37 @@ def find_intersecting_trapezoids(node, segment, intersecting_trapezoids):
                                     Initially empty
     :return: None
     """
-    if node.isLeaf:
+    if node.is_leaf:
         if node.contains_segment(segment):
             if node not in intersecting_trapezoids:
                 intersecting_trapezoids.append(node)
 
     elif node.type == 'xnode':
-        if segment.leftPoint.x >= node.endPoint.x:
+        if segment.left_point.x >= node.end_point.x:
             find_intersecting_trapezoids(node.right, segment, intersecting_trapezoids)
         else:
             find_intersecting_trapezoids(node.left, segment, intersecting_trapezoids)
-            if segment.rightPoint.x >= node.endPoint.x:
+            if segment.right_point.x >= node.end_point.x:
                 find_intersecting_trapezoids(node.right, segment, intersecting_trapezoids)
 
     else:
-        if node.lineSegment.isPointAbove(segment.leftPoint):
+        if node.lineSegment.isPointAbove(segment.left_point):
             find_intersecting_trapezoids(node.above, segment, intersecting_trapezoids)
         else:
             find_intersecting_trapezoids(node.below, segment, intersecting_trapezoids)
+
+
+def traverse_tree_without_trapezoids(traversed_nodes, node):
+    if node.type == 'xnode':
+        traversed_nodes.append(node)
+        traverse_tree_without_trapezoids(traversed_nodes, node.left)
+        traverse_tree_without_trapezoids(traversed_nodes, node.right)
+    if node.type == 'ynode':
+        traversed_nodes.append(node)
+        traverse_tree_without_trapezoids(traversed_nodes, node.above)
+        traverse_tree_without_trapezoids(traversed_nodes, node.below)
+    if node.type == 'tnode':
+        traversed_nodes.append(node)
+
+    return traversed_nodes
+

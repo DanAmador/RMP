@@ -9,28 +9,29 @@ class Point:
         self.x = x
         self.y = y
         self.seen = False
+        self.coordinates = (x,y)
 
 
 class Segment:
     def __init__(self, s1, s2,name = None):
-        self.leftPoint = s1
-        self.rightPoint = s2
+        self.left_point = s1
+        self.right_point = s2
         if s1.x < s2.x:
-            self.leftPoint = s2
-            self.rightPoint = s1
-        self.segment_coordinates = [self.leftPoint.x, self.leftPoint.y], [self.rightPoint.x, self.rightPoint.y]
+            self.left_point = s2
+            self.right_point = s1
+        self.segment_coordinates = [self.left_point.x, self.left_point.y], [self.right_point.x, self.right_point.y]
         self.length = sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2)
         self.middle_point = ((s1.x + s2.x) / 2, (s1.y + s2.y) / 2)
 
-        self.slope = (self.rightPoint.y - self.leftPoint.y) / (self.rightPoint.x - self.leftPoint.x)
-        self.const = self.leftPoint.y - (self.slope * self.leftPoint.x)
+        self.slope = (self.right_point.y - self.left_point.y) / (self.right_point.x - self.left_point.x)
+        self.const = self.left_point.y - (self.slope * self.left_point.x)
 
         if name is not None:
             self.name = name
 
 
     def inverse(self):
-        return Segment(self.rightPoint, self.leftPoint)
+        return Segment(self.right_point, self.left_point)
 
     def isPointAbove(self, point):
         if point.y > (self.slope * point.x) + self.const:
@@ -38,10 +39,10 @@ class Segment:
         return False
 
     def getY(self, x):
-        if self.leftPoint.x <= x <= self.rightPoint.x:
+        print(self.left_point.x ,"<=" ,x , "<= ",self.right_point.x)
+        if self.left_point.x <= x <= self.right_point.x:
             return (self.slope * x) + self.const
         return None
-
 
 class PolygonMesh:
     def __init__(self):
