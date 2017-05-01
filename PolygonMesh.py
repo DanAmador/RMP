@@ -3,16 +3,44 @@ from pyhull.convex_hull import ConvexHull
 from math import sqrt
 
 
+class Point:
+    def __init__(self, name, x, y):
+        self.name = name
+        self.x = x
+        self.y = y
+        self.seen = False
+
+
 class Segment:
-    def __init__(self, s1, s2):
-        self.s1 = s1
-        self.s2 = s2
-        self.segment_coordinates = [self.s1.x, self.s1.y], [self.s2.x, self.s2.y]
+    def __init__(self, s1, s2,name = None):
+        self.leftPoint = s1
+        self.rightPoint = s2
+        if s1.x < s2.x:
+            self.leftPoint = s2
+            self.rightPoint = s1
+        self.segment_coordinates = [self.leftPoint.x, self.leftPoint.y], [self.rightPoint.x, self.rightPoint.y]
         self.length = sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2)
         self.middle_point = ((s1.x + s2.x) / 2, (s1.y + s2.y) / 2)
 
+        self.slope = (self.rightPoint.y - self.leftPoint.y) / (self.rightPoint.x - self.leftPoint.x)
+        self.const = self.leftPoint.y - (self.slope * self.leftPoint.x)
+
+        if name is not None:
+            self.name = name
+
+
     def inverse(self):
-        return Segment(self.s2, self.s1)
+        return Segment(self.rightPoint, self.leftPoint)
+
+    def isPointAbove(self, point):
+        if point.y > (self.slope * point.x) + self.const:
+            return True
+        return False
+
+    def getY(self, x):
+        if self.leftPoint.x <= x <= self.rightPoint.x:
+            return (self.slope * x) + self.const
+        return None
 
 
 class PolygonMesh:
@@ -49,7 +77,7 @@ class PolygonMesh:
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:
             self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
-    '''
+
     def is_inside(self, point):
         odd_nodes = False
         x, y = point
@@ -62,25 +90,7 @@ class PolygonMesh:
                     odd_nodes = not odd_nodes
             j = i
         return odd_nodes
-        '''
-    def is_inside(self, point):
-        inside = False
-        x, y = point
-        vertices = copy.deepcopy(self.Vertices)
-        n = len(vertices)
-        p1 = vertices[0]
-        for i in range(n + 1):
-            p2 = vertices[i % n]
-            if y > min(p1.y, p2.y):
-                if y <= max(p1.y, p2.y):
-                    if x <= max(p1.x, p2.x):
-                        if p1.y != p2.y:
-                            xinters = (y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x
-                        if p1.x == p2.x or x <= xinters:
-                            inside = not inside
-            p1.x, p1.y = p2.x, p2.y
 
-        return inside
 
     def clear(self):
         self.Vertices = []

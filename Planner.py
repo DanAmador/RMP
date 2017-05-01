@@ -4,6 +4,7 @@ from Button import *
 from Checkbox import *
 from DCEL import Dcel, Vertex, is_in_convex_polygon
 from PolygonMesh import *
+from TrapezoidalMap import build_Tmap
 from poly_point_isect import isect_polygon, isect_segments
 
 
@@ -31,6 +32,8 @@ class Planner:
         self.remove_flag = False
 
         self.current_dcel = None
+
+        self.tz_map = None
 
         self.buttons = {}
         self.checkboxes = {}
@@ -169,77 +172,13 @@ class Planner:
         return True, self
 
     def compute_free_space(self):
-        poly_copy = self.polygons[:]
-        self.intersection_segments = []
         x, y = self.screen.get_size()
-        vertex_segments = []
-        for polygon in poly_copy:
-            for vertex in polygon.Vertices:
-                segment_poly_mesh = PolygonMesh()
-                segment_poly_mesh.add_vertex(vertex.x, - 2)
-                segment_poly_mesh.add_vertex(vertex.x, y + 2)
-                vertex_segments.append(segment_poly_mesh)
-
-        for v in vertex_segments:
-            poly_copy.append(v)
-
+        new_vertices, new_edges = get_vertex_edge_relation(self.polygons)
         segments = []
-        poly_copy.append(self.create_border_polygon())
-
-        new_vertices, new_edges = get_vertex_edge_relation(poly_copy)
         for edge in new_edges:
             segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
-
-        intersection_points = [point for point in [(int(round(inter[0])), int(round(inter[1])))
-                                                   for inter in isect_segments(segments)] if point not in new_vertices]
-
-        self.intersections = intersection_points
-        intersection_segments = []
-
-        poly_copy = self.polygons[:]
-        poly_copy.append(self.create_border_polygon())
-        new_vertices, new_edges = get_vertex_edge_relation(poly_copy)
-
-        for edge in new_edges:
-            intersection_segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
-        segment_saved = []
-
-        segment_list = []
-        for point in sorted(intersection_points):
-            origin_vertex = [vertex for vertex in new_vertices if point[0] == vertex[0]]
-            segment_list.append(Segment(Vertex(origin_vertex), Vertex(point)))
-            print("Point: ", point, " origin vertex:", origin_vertex)
-
-
-        for vertex in new_vertices:
-            filtered_list = [s for s in segment_list if s.s1.x == vertex[0]]
-
-            if len(filtered_list) > 2:
-                # TODO Filter for shortest vertex and keep only up and down vertices
-'''
-        for intersection in intersection_points:
-            print("\n")
-            print("Intersections ", intersection)
-            vertices_at_x = [vertex for vertex in new_vertices if vertex[0] - 1 < intersection[0] < vertex[0] + 1
-                             and vertex != intersection]
-            print("Vertices at x: ", vertices_at_x)
-            #print("Intersection at ", intersection, " has possible vertices at", vertices_at_x)
-            for segment_start in vertices_at_x:
-                print("Segment start", segment_start)
-                segment_intersection_points = isect_segments(intersection_segments + [(segment_start, intersection)])
-                print("Segment intersection points", segment_intersection_points)
-                #for segment_intersection in segment_intersection_points:
-
-                inside = False
-
-#TODO Develop trapezoidal area division correctly, it currently works sometimes
-
-
-                if len(segment_intersection_points) == 0 and not inside:
-                    segment_saved.append(("Segment saved at", segment_start, intersection))
-                    self.intersection_segments.append((segment_start, intersection))
-                #print("Segment:", segment_start, intersection, " has intersections at ", segment_intersection_points)
-'''
+        bbox = (0, 0, x, y)
+        self.tz_map = build_Tmap(segments, bbox)
 
 
 def get_vertex_edge_relation(polygons):
