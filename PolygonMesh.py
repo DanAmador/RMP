@@ -1,3 +1,4 @@
+import copy
 from pyhull.convex_hull import ConvexHull
 from math import sqrt
 
@@ -48,7 +49,7 @@ class PolygonMesh:
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:
             self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
-
+    '''
     def is_inside(self, point):
         odd_nodes = False
         x, y = point
@@ -61,6 +62,25 @@ class PolygonMesh:
                     odd_nodes = not odd_nodes
             j = i
         return odd_nodes
+        '''
+    def is_inside(self, point):
+        inside = False
+        x, y = point
+        vertices = copy.deepcopy(self.Vertices)
+        n = len(vertices)
+        p1 = vertices[0]
+        for i in range(n + 1):
+            p2 = vertices[i % n]
+            if y > min(p1.y, p2.y):
+                if y <= max(p1.y, p2.y):
+                    if x <= max(p1.x, p2.x):
+                        if p1.y != p2.y:
+                            xinters = (y - p1.y) * (p2.x - p1.x) / (p2.y - p1.y) + p1.x
+                        if p1.x == p2.x or x <= xinters:
+                            inside = not inside
+            p1.x, p1.y = p2.x, p2.y
+
+        return inside
 
     def clear(self):
         self.Vertices = []
