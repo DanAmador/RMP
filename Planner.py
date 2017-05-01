@@ -150,7 +150,7 @@ class Planner:
                             self.remove_flag = not self.remove_flag
                             print("Removing polygon", index + 1)
                             self.polygons.pop(index)
-
+                    self.compute_free_space()
             elif event.type == pygame.MOUSEMOTION:
                 self.cursor_update()
 
@@ -190,7 +190,8 @@ class Planner:
         for edge in new_edges:
             segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
 
-        intersection_points = [(int(round(inter[0])), int(round(inter[1]))) for inter in isect_segments(segments)]
+        intersection_points = [point for point in [(int(round(inter[0])), int(round(inter[1])))
+                                                   for inter in isect_segments(segments)] if point not in new_vertices]
 
         self.intersections = intersection_points
         print(new_vertices)
@@ -198,26 +199,35 @@ class Planner:
 
         poly_copy = self.polygons[:]
         poly_copy.append(self.create_border_polygon())
-        for p in poly_copy:
-            print(p.polygon_coordinates())
         new_vertices, new_edges = get_vertex_edge_relation(poly_copy)
+
         for edge in new_edges:
             intersection_segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
+        segment_saved = []
 
         for intersection in intersection_points:
-            # Decimal rounding range check
-            vertices_at_x = [vertex for vertex in new_vertices if vertex[0] - 2 < intersection[0] < vertex[0] + 2]
-            print("Intersection at ", intersection, " has possible vertices at", vertices_at_x)
-
+            vertices_at_x = [vertex for vertex in new_vertices if vertex[0] - 2 < intersection[0] < vertex[0] + 2
+                             and vertex != intersection]
+            #print("Intersection at ", intersection, " has possible vertices at", vertices_at_x)
             for segment_start in vertices_at_x:
-                if segment_start is not intersection:
-                    segment_intersection_points = isect_segments(intersection_segments + [(segment_start, intersection)])
-                    print("Segment:", segment_start, intersection, " has intersections at ",segment_intersection_points)
-                    # TODO calculate segments that correspond to available intersections
-                    if len(segment_intersection_points) is 0:
-                        self.intersection_segments.append((segment_start, intersection))
-                else:
-                    print("lolwat")
+                segment_intersection_points = isect_segments(intersection_segments + [(segment_start, intersection)])
+
+                inside = False
+                point = (int(round((segment_start[0] + intersection[0]) / 2)),
+                         int(round(segment_start[1] + intersection[1]) / 2))
+#TODO Develop trapezoidal area division correctly, it currently works sometimes
+                for p in self.polygons:
+                    #inside = inside or p.is_inside(point)
+                    if inside:
+                        print(point, "is inside polygon: ", p.polygon_coordinates())
+
+                if len(segment_intersection_points) == 0 and not inside:
+                    segment_saved.append(("Segment saved at", segment_start, intersection))
+                    self.intersection_segments.append((segment_start, intersection))
+                #print("Segment:", segment_start, intersection, " has intersections at ", segment_intersection_points)
+
+
+
 
 def get_vertex_edge_relation(polygons):
     """

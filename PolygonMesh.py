@@ -1,6 +1,7 @@
 from pyhull.convex_hull import ConvexHull
 from math import sqrt
 
+
 class Segment:
     def __init__(self, s1, s2):
         self.s1 = s1
@@ -47,6 +48,19 @@ class PolygonMesh:
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:
             self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
+
+    def is_inside(self, point):
+        odd_nodes = False
+        x, y = point
+        polygon = self.Vertices[:]
+        j = len(polygon) - 1
+        for i, p in enumerate(self.Vertices):
+            if polygon[i].y > y and polygon[j].y >= y or polygon[j].y < y and polygon[i].y >= y:
+                if polygon[i].x + (x - polygon[i].y) / (polygon[j].y - polygon[i].x) * (
+                            polygon[j].x - polygon[i].x) < x:
+                    odd_nodes = not odd_nodes
+            j = i
+        return odd_nodes
 
     def clear(self):
         self.Vertices = []
