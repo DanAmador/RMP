@@ -97,7 +97,6 @@ class TZMap:
         self.fill_adj_matrix()
 
         adjFileName = "adjMatrixOutput.txt"
-        outFile = open(adjFileName, "w")
         with open(adjFileName, 'w') as outFile:
             for arr in self.adjMatrix:
                 for col, elem in enumerate(arr):
@@ -110,7 +109,6 @@ class TZMap:
                     outFile.write(elem + ' ')
 
                 outFile.write('\n')
-        outFile.close
 
         print('Adjacency matrix saved in file:', adjFileName)
 

@@ -28,6 +28,7 @@ def build_tmap(segments, bounding_box_tuple):
     for segment in segments:
         x1, y1 = segment[0]
         x2, y2 = segment[1]
+        print(segment)
         point1 = Point('P' + str(id_num), x1, y1)
         point2 = Point('Q' + str(id_num), x2, y2)
         is_point1_unique = True
@@ -60,7 +61,8 @@ def build_tmap(segments, bounding_box_tuple):
     # assign unique names to all trapezoids in the map
     tot_trapezoids = tz_map.assign_trapezoid_names()
     print('Map built successfully:- Points: ' + str(len(unique_points)) + ', Segments:' + str(len(line_segments)) + ', '+'Trapezoids: ' + str(tot_trapezoids))
-
+    # convert map to a adjacency matrix and print to file
+    tz_map.create_adj_matrix(unique_points, len(line_segments), tot_trapezoids)
     return tz_map
 
 
@@ -192,12 +194,12 @@ def find_intersecting_trapezoids(node, segment, intersecting_trapezoids):
 
 def traverse_tree_without_trapezoids(traversed_nodes, node):
     if node.type == 'xnode':
-        traversed_nodes.append(node)
         traverse_tree_without_trapezoids(traversed_nodes, node.left)
+        traversed_nodes.append(node)
         traverse_tree_without_trapezoids(traversed_nodes, node.right)
     if node.type == 'ynode':
-        traversed_nodes.append(node)
         traverse_tree_without_trapezoids(traversed_nodes, node.above)
+        traversed_nodes.append(node)
         traverse_tree_without_trapezoids(traversed_nodes, node.below)
     if node.type == 'tnode':
         traversed_nodes.append(node)

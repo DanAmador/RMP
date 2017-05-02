@@ -75,12 +75,8 @@ class TrapezoidNode:
         self.left_point = left_point
         self.right_point = right_point
         self.parents = []
-        print("Bound Left")
-        self.bound_left = ((left_point.x, left_point.y), (left_point.x, top_segment.getY(bottom_segment.left_point.x)))
-        print("Bound right")
-        self.bound_right = ((right_point.x, right_point.y), (right_point.x, bottom_segment.getY(top_segment.right_point.x)))
-        print("\n")
         self.name = None
+        self.left_intersection = None
 
     def contains_segment(self, segment):
         if self.contains_point(segment.left_point) or self.contains_point(segment.right_point):
@@ -89,6 +85,7 @@ class TrapezoidNode:
         if res_y is not None:
             left_intersection = Point(None, self.left_point.x, res_y)
             if self.contains_point(left_intersection):
+                self.left_intersection = left_intersection
                 return True
         return False
 

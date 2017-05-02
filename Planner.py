@@ -11,6 +11,7 @@ from poly_point_isect import isect_polygon, isect_segments
 class Planner:
     def __init__(self):
         menu_pos = 0
+        self.debug_step = 0
         self.screen = pygame.display.get_surface()
         self.background = pygame.Surface(self.screen.get_size())
         self.background = self.background.convert()
@@ -18,8 +19,9 @@ class Planner:
         self.background_color = (50, 50, 50)
         self.shapeColor = (150, 150, 150)
         self.debugColor = (178, 34, 34)
-        self.green = (0,255,0)
-        self.blue = (0,0,255)
+        self.green = (0, 255, 0)
+        self.blue = (0, 0, 255)
+        self.orange = (255, 99, 71)
         self.background.fill(self.background_color)
 
         self.polygons = []
@@ -28,6 +30,7 @@ class Planner:
         self.intersections = []
         self.intersection_segments = []
 
+        self.debug_font = pygame.font.Font(None, 40)
         self.polygon_build = False
         self.remove_flag = False
 
@@ -41,6 +44,7 @@ class Planner:
         self.buttons["run"] = Button(0, menu_pos, 100, 40, "RUN")
         self.buttons["polygon"] = Button(0, menu_pos + 40, 100, 40, "POLYGON")
         self.buttons["remove"] = Button(0, menu_pos + 80, 100, 40, "REMOVE")
+        self.buttons["debug_step"] = Button(0, menu_pos + 120, 100, 40, "Debug step")
 
         self.checkboxes['debug'] = Checkbox(110, 0, "Debug Info")
         self.checkboxes['tmap'] = Checkbox(110, 20, "Draw T-Map?")
@@ -48,8 +52,8 @@ class Planner:
 
         pygame.display.flip()
 
-
     def debug_draw(self):
+
         for shape in self.polygons:
             for line in shape.polygon_coordinates(ch=True):
                 pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
@@ -58,17 +62,26 @@ class Planner:
             trav_tree = traverse_tree_without_trapezoids([], self.tz_map.root)
 
             for node in trav_tree:
-                if node.type == 'xnode':
-                    pygame.draw.circle(self.screen, self.debugColor, node.end_point.coordinates, 5)
-                if node.type == 'ynode':
-                    pygame.draw.line(self.screen, self.blue, node.line_segment.left_point.coordinates, node.line_segment.right_point.coordinates, 5)
-                if node.type == 'tnode':
-                    print("Up",node.bound_left[0],node.bound_left[1])
-                    print("Down", node.bound_right[0], node.bound_left[1])
-                    print("\n")
-                    pygame.draw.line(self.screen, self.green, node.bound_left[0], node.bound_left[1], 5)
-                    pygame.draw.line(self.screen, self.debugColor, node.bound_right[0], node.bound_right[1], 5)
+                if node.type == 'tnode' and node.name == "T" + str(self.debug_step):
+                    t_coords = (int((node.bottom_segment.middle_point[0] + node.top_segment.middle_point[0]) / 2),
+                                int((node.bottom_segment.middle_point[1] + node.top_segment.middle_point[1]) / 2))
+                    self.screen.blit(self.debug_font.render(node.name, True, self.debugColor), t_coords)
 
+
+
+                    pygame.draw.circle(self.screen, self.debugColor, node.left_point.coordinates, 5)
+                    pygame.draw.circle(self.screen, self.orange, node.right_point.coordinates, 5)
+
+                    pygame.draw.line(self.screen, self.blue, node.top_segment.left_point.coordinates,
+                                     node.top_segment.right_point.coordinates, 5)
+                    pygame.draw.line(self.screen, self.green, node.bottom_segment.left_point.coordinates,
+                                     node.bottom_segment.right_point.coordinates, 5)
+                if node.type == 'ynode':
+                    # pygame.draw.line(self.screen, self.blue, node.line_segment.left_point.coordinates,node.line_segment.right_point.coordinates, 5)
+                    pass
+                if node.type == 'xnode':
+                    # pygame.draw.circle(self.screen, self.debugColor, node.end_point.coordinates, 5)
+                    pass
 
     def draw_polygons(self):
         for shape in self.polygons:
@@ -137,6 +150,11 @@ class Planner:
 
                     return True, self
 
+                elif self.buttons["debug_step"].on_button(*mse):
+
+                    self.debug_step = (self.debug_step +1) % self.tz_map.totTrapezoids if self.tz_map else 0
+                    return True, self
+
                 elif self.checkboxes['debug'].on_checkbox(*mse):
                     self.checkboxes['debug'].change_state()
                     return True, self
@@ -182,7 +200,7 @@ class Planner:
         segments = []
         for edge in new_edges:
             segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
-        bbox = (0, 0, x-1, y-1)
+        bbox = (0, 0, x - 1, y - 1)
         self.tz_map = build_tmap(segments, bbox)
 
 

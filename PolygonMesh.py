@@ -9,11 +9,11 @@ class Point:
         self.x = x
         self.y = y
         self.seen = False
-        self.coordinates = (x,y)
+        self.coordinates = (x, y)
 
 
 class Segment:
-    def __init__(self, s1, s2,name = None):
+    def __init__(self, s1, s2, name=None):
         self.left_point = s1
         self.right_point = s2
         if s1.x < s2.x:
@@ -29,7 +29,6 @@ class Segment:
         if name is not None:
             self.name = name
 
-
     def inverse(self):
         return Segment(self.right_point, self.left_point)
 
@@ -39,10 +38,18 @@ class Segment:
         return False
 
     def getY(self, x):
-        print(self.left_point.x ,"<=" ,x , "<= ",self.right_point.x)
+        print(self.left_point.x, "<=", x, "<= ", self.right_point.x)
         if self.left_point.x <= x <= self.right_point.x:
             return (self.slope * x) + self.const
         return None
+
+    def get_y_without_check(self,x):
+        return int((self.slope * x) + self.const)
+
+    def get_vertical_intersection_points(self, segment2):
+        if self.left_point.x < segment2.left_point.x < self.right_point.x:
+            pass
+
 
 class PolygonMesh:
     def __init__(self):
@@ -91,7 +98,6 @@ class PolygonMesh:
                     odd_nodes = not odd_nodes
             j = i
         return odd_nodes
-
 
     def clear(self):
         self.Vertices = []
