@@ -1,6 +1,6 @@
 import copy
 from pyhull.convex_hull import ConvexHull
-from math import sqrt
+from math import sqrt, inf
 
 
 class Point:
@@ -23,30 +23,24 @@ class Segment:
         self.length = sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2)
         self.middle_point = ((s1.x + s2.x) / 2, (s1.y + s2.y) / 2)
 
-        self.slope = (self.right_point.y - self.left_point.y) / (self.right_point.x - self.left_point.x)
+        self.slope = (self.right_point.y - self.left_point.y) / (self.right_point.x - self.left_point.x) if (
+                                                                                                            self.right_point.x - self.left_point.x) != 0 else inf
         self.const = self.left_point.y - (self.slope * self.left_point.x)
 
         if name is not None:
             self.name = name
-
 
     def isPointAbove(self, point):
         if point.y > (self.slope * point.x) + self.const:
             return True
         return False
 
-    def getY(self, x):
-        print(self.left_point.x, "<=", x, "<= ", self.right_point.x)
-        if self.left_point.x -1 <= x <= self.right_point.x +1 :
-            return (self.slope * x) + self.const
+    def getY(self, x, integer=False):
+        #print(self.left_point.x, " <= ", x, " <= ", self.right_point.x)
+        if self.left_point.x - 1 <= x <= self.right_point.x + 1:
+            return_value = (self.slope * x) + self.const
+            return return_value if not integer else int(return_value)
         return None
-
-    def getY_back(self,x):
-        print(self.left_point.x, ">=", x, ">= ", self.right_point.x)
-        return int((self.slope * x) + self.const)
-    def point_vertical_intersection(self, point):
-
-            pass
 
 
 class PolygonMesh:
@@ -84,20 +78,3 @@ class PolygonMesh:
         for segment in self.convexHull.vertices:
             self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
 
-    def is_inside(self, point):
-        odd_nodes = False
-        x, y = point
-        polygon = self.Vertices[:]
-        j = len(polygon) - 1
-        for i, p in enumerate(self.Vertices):
-            if polygon[i].y > y and polygon[j].y >= y or polygon[j].y < y and polygon[i].y >= y:
-                if polygon[i].x + (x - polygon[i].y) / (polygon[j].y - polygon[i].x) * (
-                            polygon[j].x - polygon[i].x) < x:
-                    odd_nodes = not odd_nodes
-            j = i
-        return odd_nodes
-
-    def clear(self):
-        self.Vertices = []
-        self.convexHull = []
-        self.ch_poly = []

@@ -56,19 +56,19 @@ class TZMap:
         """
         if node is None:
             node = self.root
-            print('Traversal Path:')
+            print('Traversal Path:', end='')
         else:
-            print('->')
+            print(' -> ', end='')
 
-        print(node.getName())
+        print(" " + node.get_name(), end='')
 
         if node.type == 'xnode':
-            if user_point.x >= node.endPoint.x:
+            if user_point.x >= node.end_point.x:
                 self.print_traversal_path(user_point, node.right)
             else:
                 self.print_traversal_path(user_point, node.left)
         elif node.type == 'ynode':
-            if node.lineSegment.isPointAbove(user_point):
+            if node.line_segment.isPointAbove(user_point):
                 self.print_traversal_path(user_point, node.above)
             else:
                 self.print_traversal_path(user_point, node.below)
@@ -110,7 +110,6 @@ class TZMap:
 
                 outFile.write('\n')
 
-        print('Adjacency matrix saved in file:', adjFileName)
 
     def fill_adj_matrix(self, node=None):
         """
