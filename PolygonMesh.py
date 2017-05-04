@@ -1,6 +1,8 @@
 import copy
 from pyhull.convex_hull import ConvexHull
 from math import sqrt, inf
+import matplotlib.path as mplPath
+import numpy as np
 
 
 class Point:
@@ -24,7 +26,7 @@ class Segment:
         self.middle_point = ((s1.x + s2.x) / 2, (s1.y + s2.y) / 2)
 
         self.slope = (self.right_point.y - self.left_point.y) / (self.right_point.x - self.left_point.x) if (
-                                                                                                            self.right_point.x - self.left_point.x) != 0 else inf
+                                                                                                                self.right_point.x - self.left_point.x) != 0 else inf
         self.const = self.left_point.y - (self.slope * self.left_point.x)
 
         if name is not None:
@@ -36,7 +38,6 @@ class Segment:
         return False
 
     def getY(self, x, integer=False):
-        #print(self.left_point.x, " <= ", x, " <= ", self.right_point.x)
         if self.left_point.x - 1 <= x <= self.right_point.x + 1:
             return_value = (self.slope * x) + self.const
             return return_value if not integer else int(return_value)
@@ -73,8 +74,37 @@ class PolygonMesh:
         return [[el.x, el.y] for el in self.Vertices] if not ch else [segment.segment_coordinates for segment in
                                                                       self.ch_poly]
 
+    def is_inside(self, point, r=0.001):
+        vertex, edges = self.dcel_info()
+        crd = np.array(vertex)
+        bbPath = mplPath.Path(crd)
+        return bbPath.contains_point(point, radius=r) or bbPath.contains_point(point, radius=-r)
+
+    def contains_path(self, segment, up=True, r=0.001):
+        points = []
+
+        if segment.slope == inf:
+            jump = - 1 if up else 1
+            curr_x = segment.left_point.x - 5 if up else segment.left_point.x + 5
+            for jumps in range(int(segment.length - 5)):
+                points.append([curr_x, segment.left_point.y])
+                curr_x += jump
+        else:
+            print("not infinite")
+            jump = 1
+            curr_x = segment.left_point.x + 5
+            for jumps in range(int(segment.length - 6)):
+                points.append([curr_x, segment.getY(curr_x, integer=True)])
+                curr_x += jump
+        vertex, edges = self.dcel_info()
+
+        crd = np.array(vertex)
+        path = np.array(points)
+        bbPath = mplPath.Path(crd)
+
+        return bbPath.contains_points(path, radius=r)
+
     def qhull(self):
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:
             self.ch_poly.append(Segment(self.Vertices[segment[0]], self.Vertices[segment[1]]))
-

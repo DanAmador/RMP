@@ -29,7 +29,7 @@ class Planner:
         self.background.fill(self.background_color)
         # Data Structures
         self.polygons = []
-        self.tz_map_vertical_segments = []
+        self.tz_map_vertical_segments = {'up': [], 'down': []}
         self.currentPolygon = None
         self.current_dcel = None
         self.tz_map = None
@@ -39,14 +39,19 @@ class Planner:
         self.remove_flag = False
         self.debug_point_flag = False
 
+        # Debug path
+        self.debug_path_segment = []
+        self.debug_path_flag = False
+
         self.buttons = {}
         self.checkboxes = {}
 
         self.buttons["run"] = Button(0, menu_pos, 100, 40, "RUN")
         self.buttons["polygon"] = Button(0, menu_pos + 40, 100, 40, "POLYGON")
         self.buttons["remove"] = Button(0, menu_pos + 80, 100, 40, "REMOVE")
-        self.buttons["debug_step"] = Button(0, menu_pos + 120, 100, 40, "Debug step")
-        self.buttons["debug_point"] = Button(0, menu_pos + 160, 100, 40, "Traversal Path")
+        self.buttons["debug_point"] = Button(0, menu_pos + 120, 100, 40, "Traversal Path")
+        self.buttons["debug_step"] = Button(0, menu_pos + 160, 100, 40, "Debug step")
+        self.buttons["debug_path"] = Button(0, menu_pos + 200, 100, 40, "Debug path")
 
         self.checkboxes['convex_hull'] = Checkbox(110, 0, "Convex Hull")
         self.checkboxes['tmap'] = Checkbox(110, 20, "Trapezoidal Map")
@@ -55,16 +60,24 @@ class Planner:
         pygame.display.flip()
 
     def debug_draw(self):
+        if self.debug_path_flag:
+            for vertex in self.debug_path_segment:
+                pygame.draw.circle(self.screen, self.shapeColor, (vertex[0], vertex[1]), 5)
 
         if self.checkboxes['convex_hull'].is_checked():
             for shape in self.polygons:
                 for line in shape.polygon_coordinates(ch=True):
                     pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
 
-        if self.checkboxes['tmap'].is_checked() and self.tz_map is not None:
+        if self.checkboxes['tmap'].is_checked() and self.tz_map:
             trav_tree = traverse_tree([], self.tz_map.root)
-            if len(self.tz_map_vertical_segments) > 0:
-                for s in self.tz_map_vertical_segments:
+
+            if len(self.tz_map_vertical_segments['up']) > 0:
+                for s in self.tz_map_vertical_segments['up']:
+                    pygame.draw.line(self.screen, self.pink, s.right_point.coordinates, s.left_point.coordinates, 5)
+
+            if len(self.tz_map_vertical_segments['down']) > 0:
+                for s in self.tz_map_vertical_segments['down']:
                     pygame.draw.line(self.screen, self.pink, s.right_point.coordinates, s.left_point.coordinates, 5)
 
             for node in trav_tree:
@@ -87,7 +100,6 @@ class Planner:
                         pygame.draw.line(self.screen, self.green, node.bottom_segment.left_point.coordinates,
                                          node.bottom_segment.right_point.coordinates, 5)
 
-
     def draw_polygons(self):
         for shape in self.polygons:
             pygame.draw.polygon(self.screen, self.shapeColor, shape.dcel_info()[0], 0)
@@ -108,6 +120,9 @@ class Planner:
             if cb.on_checkbox(*mse):
                 pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
+        if self.debug_path_flag:
+                pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+
         if self.polygon_build:
             pygame.mouse.set_cursor(*pygame.cursors.diamond)
 
@@ -118,7 +133,6 @@ class Planner:
             pygame.mouse.set_cursor(*pygame.cursors.broken_x)
 
     def update(self):
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -149,7 +163,7 @@ class Planner:
                     return True, self
 
                 elif self.buttons["run"].on_button(*mse):
-                    if self.checkboxes['point'].is_checked():
+                    if self.checkboxes['robot_point'].is_checked():
                         self.compute_free_space()
                     return True, self
 
@@ -157,6 +171,10 @@ class Planner:
 
                     self.remove_flag = not self.remove_flag
 
+                    return True, self
+
+                elif self.buttons['debug_path'].on_button(*mse):
+                    self.debug_path_flag = not self.debug_path_flag
                     return True, self
 
                 elif self.buttons["debug_step"].on_button(*mse):
@@ -187,13 +205,24 @@ class Planner:
                         print("")
                     self.debug_point_flag = False
 
+                elif self.debug_path_flag:
+                    self.debug_path_segment.append(mse)
+                    if self.debug_path_flag and len(self.debug_path_segment) % 2 == 0:
+                        test_segment = Segment(Point("test", *self.debug_path_segment[0]),
+                                               Point("test", *self.debug_path_segment[1]))
+
+                        for indx, p in enumerate(self.polygons):
+                            if any(p.contains_path(test_segment)):
+                                print("Segment: ", test_segment.segment_coordinates, "is inside polygon: ", indx)
+                        self.debug_path_flag = False
                 elif self.remove_flag:
                     for index, polygon in enumerate(self.polygons):
-                        if is_in_convex_polygon(mse, polygon.polygon_coordinates(ch=True)):
+                        if polygon.is_inside(mse):
                             self.remove_flag = not self.remove_flag
                             print("Removing polygon", index + 1)
                             self.polygons.pop(index)
                             self.compute_tz_map()
+                            self.compute_free_space()
             elif event.type == pygame.MOUSEMOTION:
                 self.cursor_update()
 
@@ -216,7 +245,8 @@ class Planner:
         trav_tree = traverse_tree([], self.tz_map.root)
         segment_objects = [node.line_segment for node in trav_tree if node.type == "ynode"]
         vertex, edge = get_vertex_edge_relation(self.polygons)
-        self.tz_map_vertical_segments = []
+        self.tz_map_vertical_segments = {'up': [], 'down': []}
+
         for idp, point in enumerate(vertex):
             up, down = [], []
             for ids, segment in enumerate(segment_objects + self.get_border_segments()):
@@ -228,13 +258,24 @@ class Planner:
                         up.append(new_segment)
                     else:
                         down.append(new_segment)
+
+            for new_segment in up:
+                intersects_any_polygon = any([any(p.contains_path(new_segment)) for p in self.polygons])
+                if intersects_any_polygon:
+                    up.remove(new_segment)
+
+            for new_segment in down:
+                intersects_any_polygon = any([any(p.contains_path(new_segment, up=False)) for p in self.polygons])
+                if intersects_any_polygon:
+                    down.remove(new_segment)
+
             up.sort(key=lambda seg: seg.length)
             down.sort(key=lambda seg: seg.length)
 
             if len(up) > 0:
-                self.tz_map_vertical_segments.append(up[0])
+                self.tz_map_vertical_segments['up'].append(up[0])
             if len(down) > 0:
-                self.tz_map_vertical_segments.append(down[0])
+                self.tz_map_vertical_segments['down'].append(down[0])
 
     def compute_tz_map(self):
         x, y = self.screen.get_size()
