@@ -76,33 +76,32 @@ class PolygonMesh:
 
     def is_inside(self, point, r=0.001):
         vertex, edges = self.dcel_info()
-        crd = np.array(vertex)
+        crd = np.array(vertex, dtype='float64')
         bbPath = mplPath.Path(crd)
         return bbPath.contains_point(point, radius=r) or bbPath.contains_point(point, radius=-r)
 
-    def contains_path(self, segment, up=True, r=0.001):
+    def contains_path(self, segment, up=True):
         points = []
 
         if segment.slope == inf:
-            jump = - 1 if up else 1
-            curr_x = segment.left_point.x - 5 if up else segment.left_point.x + 5
-            for jumps in range(int(segment.length - 5)):
-                points.append([curr_x, segment.left_point.y])
-                curr_x += jump
+            jump = -1 if up else 1
+            y_diff = abs(segment.left_point.y - segment.right_point.y) / 10
+            curr_y = segment.left_point.x - y_diff if up else segment.left_point.x + y_diff
+            for jumps in range(int(y_diff)):
+                print(int(curr_y),end=", ")
+                points.append([segment.left_point.x, int(curr_y)])
+                curr_y += jump
+            print("")
         else:
             print("not infinite")
             jump = 1
             curr_x = segment.left_point.x + 5
-            for jumps in range(int(segment.length - 6)):
-                points.append([curr_x, segment.getY(curr_x, integer=True)])
+            for jumps in range(int(segment.length)):
+                if curr_x < segment.right_point.x:
+                    points.append([curr_x, segment.getY(curr_x, integer=True)])
                 curr_x += jump
-        vertex, edges = self.dcel_info()
 
-        crd = np.array(vertex)
-        path = np.array(points)
-        bbPath = mplPath.Path(crd)
-
-        return bbPath.contains_points(path, radius=r)
+        return any(self.is_inside(point_tuple, r=0) for point_tuple in points)
 
     def qhull(self):
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])

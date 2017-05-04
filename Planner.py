@@ -121,7 +121,7 @@ class Planner:
                 pygame.mouse.set_cursor(*pygame.cursors.tri_left)
 
         if self.debug_path_flag:
-                pygame.mouse.set_cursor(*pygame.cursors.broken_x)
+            pygame.mouse.set_cursor(*pygame.cursors.broken_x)
 
         if self.polygon_build:
             pygame.mouse.set_cursor(*pygame.cursors.diamond)
@@ -155,6 +155,7 @@ class Planner:
                                 self.current_dcel = Dcel(new_vertices, new_edges)
                                 self.current_polygon.qhull()
                                 self.compute_tz_map()
+                                self.compute_free_space()
                             else:
                                 print("Polygon intersects itself, create new polygon")
                         else:
@@ -212,8 +213,10 @@ class Planner:
                                                Point("test", *self.debug_path_segment[1]))
 
                         for indx, p in enumerate(self.polygons):
-                            if any(p.contains_path(test_segment)):
+                            if p.contains_path(test_segment):
                                 print("Segment: ", test_segment.segment_coordinates, "is inside polygon: ", indx)
+
+                        self.debug_path_segment = []
                         self.debug_path_flag = False
                 elif self.remove_flag:
                     for index, polygon in enumerate(self.polygons):
@@ -259,15 +262,21 @@ class Planner:
                     else:
                         down.append(new_segment)
 
-            for new_segment in up:
-                intersects_any_polygon = any([any(p.contains_path(new_segment)) for p in self.polygons])
-                if intersects_any_polygon:
-                    up.remove(new_segment)
+            for polygon in self.polygons:
+                print(" ")
+                print("Measuring for poly:" , polygon.dcel_info()[0])
 
+                print("Up shit")
+                for new_segment in up:
+                    segment_inside = polygon.contains_path(new_segment)
+                    if segment_inside:
+                        up.remove(new_segment)
+
+            print("Down shit")
             for new_segment in down:
-                intersects_any_polygon = any([any(p.contains_path(new_segment, up=False)) for p in self.polygons])
-                if intersects_any_polygon:
-                    down.remove(new_segment)
+                    segment_inside = polygon.contains_path(new_segment, up=False)
+                    if segment_inside:
+                        down.remove(new_segment)
 
             up.sort(key=lambda seg: seg.length)
             down.sort(key=lambda seg: seg.length)
