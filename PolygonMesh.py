@@ -16,7 +16,7 @@ class Segment:
     def __init__(self, s1, s2, name=None):
         self.left_point = s1
         self.right_point = s2
-        if s1.x < s2.x:
+        if s1.x > s2.x:
             self.left_point = s2
             self.right_point = s1
         self.segment_coordinates = [self.left_point.x, self.left_point.y], [self.right_point.x, self.right_point.y]
@@ -29,8 +29,6 @@ class Segment:
         if name is not None:
             self.name = name
 
-    def inverse(self):
-        return Segment(self.right_point, self.left_point)
 
     def isPointAbove(self, point):
         if point.y > (self.slope * point.x) + self.const:
@@ -39,15 +37,15 @@ class Segment:
 
     def getY(self, x):
         print(self.left_point.x, "<=", x, "<= ", self.right_point.x)
-        if self.left_point.x <= x <= self.right_point.x:
+        if self.left_point.x -1 <= x <= self.right_point.x +1 :
             return (self.slope * x) + self.const
         return None
 
-    def get_y_without_check(self,x):
+    def getY_back(self,x):
+        print(self.left_point.x, ">=", x, ">= ", self.right_point.x)
         return int((self.slope * x) + self.const)
+    def point_vertical_intersection(self, point):
 
-    def get_vertical_intersection_points(self, segment2):
-        if self.left_point.x < segment2.left_point.x < self.right_point.x:
             pass
 
 
