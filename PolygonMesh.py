@@ -85,7 +85,7 @@ class PolygonMesh:
         if segment.slope == inf:
             jump = -1 if up else 1
             y_diff = abs(segment.left_point.y - segment.right_point.y) / 10
-            curr_y = segment.left_point.y - y_diff if up else segment.left_point.y + y_diff
+            curr_y = segment.left_point.y  if up else segment.left_point.y
 
             for jumps in range(9):
                 points.append([segment.left_point.x, int(curr_y)])

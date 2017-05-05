@@ -101,8 +101,8 @@ class Planner:
                                          node.top_segment.right_point.coordinates, 5)
                         pygame.draw.line(self.screen, self.green, node.bottom_segment.left_point.coordinates,
                                          node.bottom_segment.right_point.coordinates, 5)
-                        # for vertex in self.points_used:
-                        #   pygame.draw.circle(self.screen, self.debugColor, (vertex[0], vertex[1]), 5)
+            for vertex in self.points_used:
+                pygame.draw.circle(self.screen, self.debugColor, (vertex[0], vertex[1]), 2)
 
     def draw_polygons(self):
         for shape in self.polygons:
@@ -163,7 +163,7 @@ class Planner:
                             else:
                                 print("Polygon intersects itself, create new polygon")
                         else:
-                            int("Polygon too small")
+                            print("Polygon too small")
                     self.polygon_build = not self.polygon_build
                     return True, self
 
@@ -265,36 +265,45 @@ class Planner:
                 if new_y is not None and new_y != point[1]:
                     name = "P" + str(idp) + "S" + str(ids)
                     if new_y < point[1]:
-                        x,y = point
-                        up.append( Segment(Point("p" + name, x,y -5), Point("q" + name, point[0], new_y)))
+                        x, y = point
+                        up.append(Segment(Point("p" + name, x, y - 5), Point("q" + name, point[0], new_y + 5)))
                     else:
-                        x,y = point
-                        down.append( Segment(Point("p" + name, x,y + 5), Point("q" + name, point[0], new_y)))
+                        x, y = point
+                        down.append(Segment(Point("p" + name, x, y + 5), Point("q" + name, point[0], new_y - 5)))
 
             for polygon in self.polygons:
-
                 for indx, new_segment in enumerate(up):
+                    print("Up segment", new_segment.segment_coordinates)
                     segment_inside, points_used = polygon.contains_path(new_segment)
                     self.points_used += points_used
-                    if any(segment_inside):
-                        print("Removing ", new_segment.segment_coordinates)
-                        up.pop(indx)
+                    to_remove = []
+                    if any(segment_inside) or len(isect_segments(get_new_segment_list(segments, new_segment))) > 0:
+                        print("Removing ", new_segment.segment_coordinates, " has intersections at: ",
+                              [inter[1] for inter in isect_segments(get_new_segment_list(segments, new_segment))])
+                        to_remove.append(indx)
 
+                for i in to_remove[::-1]:
+                    up.pop(i)
+
+                to_remove = []
                 for indx, new_segment in enumerate(down):
+                    print("Down segment", new_segment.segment_coordinates)
                     segment_inside, points_used = polygon.contains_path(new_segment, up=False)
                     self.points_used += points_used
-                    if any(segment_inside):
-                        print("Removing ", new_segment.segment_coordinates)
-                        down.pop(indx)
+                    if any(segment_inside) or len(isect_segments(get_new_segment_list(segments, new_segment))) >= 1:
+                        print("Removing ", new_segment.segment_coordinates, " has intersections at: ",
+                              [inter[1] for inter in isect_segments(get_new_segment_list(segments, new_segment))])
+                        to_remove.append(indx)
 
-            up.sort(key=lambda seg: seg.length)
-            down.sort(key=lambda seg: seg.length)
-            if len(up) > 0 and len(isect_segments(segments + [
-                (tuple(up[0].segment_coordinates[0]), tuple(up[0].segment_coordinates[1]))])) == 0:
-                self.tz_map_vertical_segments['up'].append(up[0])
-            if len(down) > 0 and len(isect_segments(segments + [
-                (tuple(down[0].segment_coordinates[0]), tuple(down[0].segment_coordinates[1]))])) == 0:
-                self.tz_map_vertical_segments['down'].append(down[0])
+                for i in to_remove[::-1]:
+                    down.pop(i)
+
+                up.sort(key=lambda seg: seg.length)
+                down.sort(key=lambda seg: seg.length)
+                if len(up) > 0:
+                    self.tz_map_vertical_segments['up'].append(up[0])
+                if len(down) > 0:
+                    self.tz_map_vertical_segments['down'].append(down[0])
 
     def compute_tz_map(self):
         x, y = self.screen.get_size()
@@ -313,6 +322,10 @@ class Planner:
         lower_right = Point('lr', x2, y1)
         upper_left = Point('ul', x1, y2)
         return [Segment(upper_left, upper_right, 'bT'), Segment(lower_eft, lower_right, 'bB')]
+
+
+def get_new_segment_list(segments, new_segment):
+    return segments + [(tuple(new_segment.segment_coordinates[0]), tuple(new_segment.segment_coordinates[1]))]
 
 
 def get_vertex_edge_relation(polygons):
