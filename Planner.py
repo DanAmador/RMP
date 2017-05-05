@@ -11,6 +11,7 @@ from poly_point_isect import isect_polygon, isect_segments
 class Planner:
     def __init__(self):
         # Random Values
+        self.points_used = []
         menu_pos = 0
         self.debug_step = 0
         # Pygame objects
@@ -60,6 +61,7 @@ class Planner:
         pygame.display.flip()
 
     def debug_draw(self):
+
         if self.debug_path_flag:
             for vertex in self.debug_path_segment:
                 pygame.draw.circle(self.screen, self.shapeColor, (vertex[0], vertex[1]), 5)
@@ -99,6 +101,8 @@ class Planner:
                                          node.top_segment.right_point.coordinates, 5)
                         pygame.draw.line(self.screen, self.green, node.bottom_segment.left_point.coordinates,
                                          node.bottom_segment.right_point.coordinates, 5)
+                        # for vertex in self.points_used:
+                        #   pygame.draw.circle(self.screen, self.debugColor, (vertex[0], vertex[1]), 5)
 
     def draw_polygons(self):
         for shape in self.polygons:
@@ -222,7 +226,7 @@ class Planner:
                     for index, polygon in enumerate(self.polygons):
                         if polygon.is_inside(mse):
                             self.remove_flag = not self.remove_flag
-                            print("Removing polygon", index + 1)
+                            print("Removing polygon", index + 1, " with click at ", mse)
                             self.polygons.pop(index)
                             self.compute_tz_map()
                             self.compute_free_space()
@@ -245,45 +249,51 @@ class Planner:
 
     def compute_free_space(self):
         # Get TZ_map segment vertices
+        new_vertices, new_edges = get_vertex_edge_relation(self.polygons)
+        segments = []
+        for edge in new_edges:
+            segments.append((new_vertices[edge[0]], new_vertices[edge[1]]))
         trav_tree = traverse_tree([], self.tz_map.root)
         segment_objects = [node.line_segment for node in trav_tree if node.type == "ynode"]
         vertex, edge = get_vertex_edge_relation(self.polygons)
         self.tz_map_vertical_segments = {'up': [], 'down': []}
-
+        self.points_used = []
         for idp, point in enumerate(vertex):
             up, down = [], []
             for ids, segment in enumerate(segment_objects + self.get_border_segments()):
                 new_y = segment.getY(point[0], integer=True)
                 if new_y is not None and new_y != point[1]:
                     name = "P" + str(idp) + "S" + str(ids)
-                    new_segment = Segment(Point("p" + name, *point), Point("q" + name, point[0], new_y))
                     if new_y < point[1]:
-                        up.append(new_segment)
+                        x,y = point
+                        up.append( Segment(Point("p" + name, x,y -5), Point("q" + name, point[0], new_y)))
                     else:
-                        down.append(new_segment)
+                        x,y = point
+                        down.append( Segment(Point("p" + name, x,y + 5), Point("q" + name, point[0], new_y)))
 
             for polygon in self.polygons:
-                print(" ")
-                print("Measuring for poly:" , polygon.dcel_info()[0])
 
-                print("Up shit")
-                for new_segment in up:
-                    segment_inside = polygon.contains_path(new_segment)
-                    if segment_inside:
-                        up.remove(new_segment)
+                for indx, new_segment in enumerate(up):
+                    segment_inside, points_used = polygon.contains_path(new_segment)
+                    self.points_used += points_used
+                    if any(segment_inside):
+                        print("Removing ", new_segment.segment_coordinates)
+                        up.pop(indx)
 
-            print("Down shit")
-            for new_segment in down:
-                    segment_inside = polygon.contains_path(new_segment, up=False)
-                    if segment_inside:
-                        down.remove(new_segment)
+                for indx, new_segment in enumerate(down):
+                    segment_inside, points_used = polygon.contains_path(new_segment, up=False)
+                    self.points_used += points_used
+                    if any(segment_inside):
+                        print("Removing ", new_segment.segment_coordinates)
+                        down.pop(indx)
 
             up.sort(key=lambda seg: seg.length)
             down.sort(key=lambda seg: seg.length)
-
-            if len(up) > 0:
+            if len(up) > 0 and len(isect_segments(segments + [
+                (tuple(up[0].segment_coordinates[0]), tuple(up[0].segment_coordinates[1]))])) == 0:
                 self.tz_map_vertical_segments['up'].append(up[0])
-            if len(down) > 0:
+            if len(down) > 0 and len(isect_segments(segments + [
+                (tuple(down[0].segment_coordinates[0]), tuple(down[0].segment_coordinates[1]))])) == 0:
                 self.tz_map_vertical_segments['down'].append(down[0])
 
     def compute_tz_map(self):

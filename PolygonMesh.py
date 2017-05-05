@@ -82,16 +82,14 @@ class PolygonMesh:
 
     def contains_path(self, segment, up=True):
         points = []
-
         if segment.slope == inf:
             jump = -1 if up else 1
             y_diff = abs(segment.left_point.y - segment.right_point.y) / 10
-            curr_y = segment.left_point.x - y_diff if up else segment.left_point.x + y_diff
-            for jumps in range(int(y_diff)):
-                print(int(curr_y),end=", ")
+            curr_y = segment.left_point.y - y_diff if up else segment.left_point.y + y_diff
+
+            for jumps in range(9):
                 points.append([segment.left_point.x, int(curr_y)])
-                curr_y += jump
-            print("")
+                curr_y += y_diff * jump
         else:
             print("not infinite")
             jump = 1
@@ -101,7 +99,7 @@ class PolygonMesh:
                     points.append([curr_x, segment.getY(curr_x, integer=True)])
                 curr_x += jump
 
-        return any(self.is_inside(point_tuple, r=0) for point_tuple in points)
+        return [self.is_inside(point_tuple, r=0) for point_tuple in points], points
 
     def qhull(self):
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
