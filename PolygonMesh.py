@@ -23,7 +23,7 @@ class Segment:
             self.right_point = s1
         self.segment_coordinates = [self.left_point.x, self.left_point.y], [self.right_point.x, self.right_point.y]
         self.length = sqrt((s1.x - s2.x) ** 2 + (s1.y - s2.y) ** 2)
-        self.middle_point = ((s1.x + s2.x) / 2, (s1.y + s2.y) / 2)
+        self.middle_point = (int(round((s1.x + s2.x) / 2)), int(round((s1.y + s2.y) / 2)))
 
         self.slope = (self.right_point.y - self.left_point.y) / (self.right_point.x - self.left_point.x) if (
                                                                                                                 self.right_point.x - self.left_point.x) != 0 else inf
@@ -91,7 +91,6 @@ class PolygonMesh:
                 points.append([segment.left_point.x, int(curr_y)])
                 curr_y += y_diff * jump
         else:
-            print("not infinite")
             jump = 1
             curr_x = segment.left_point.x + 5
             for jumps in range(int(segment.length)):

@@ -1,8 +1,9 @@
 import copy
 
+from Graph import *
 from Button import *
 from Checkbox import *
-from DCEL import Dcel, Vertex, is_in_convex_polygon
+from DCEL import Dcel
 from PolygonMesh import *
 from TrapezoidalMap import build_tmap, traverse_tree
 from poly_point_isect import isect_polygon, isect_segments
@@ -27,6 +28,7 @@ class Planner:
         self.blue = (0, 0, 255)
         self.orange = (255, 99, 71)
         self.pink = (255, 105, 180)
+        self.light_blue = (135, 206, 250)
         self.background.fill(self.background_color)
         # Data Structures
         self.polygons = []
@@ -47,6 +49,8 @@ class Planner:
         self.buttons = {}
         self.checkboxes = {}
 
+        self.space_graph = Graph()
+
         self.buttons["run"] = Button(0, menu_pos, 100, 40, "RUN")
         self.buttons["polygon"] = Button(0, menu_pos + 40, 100, 40, "POLYGON")
         self.buttons["remove"] = Button(0, menu_pos + 80, 100, 40, "REMOVE")
@@ -56,12 +60,13 @@ class Planner:
 
         self.checkboxes['convex_hull'] = Checkbox(110, 0, "Convex Hull")
         self.checkboxes['tmap'] = Checkbox(110, 20, "Trapezoidal Map")
-        self.checkboxes['robot_point'] = Checkbox(110, 40, "Robot is a point")
+        self.checkboxes['debug_points'] = Checkbox(110, 40, "Show points")
+
+        self.checkboxes['robot_point'] = Checkbox(260, 0, "Robot is a point")
 
         pygame.display.flip()
 
     def debug_draw(self):
-
         if self.debug_path_flag:
             for vertex in self.debug_path_segment:
                 pygame.draw.circle(self.screen, self.shapeColor, (vertex[0], vertex[1]), 5)
@@ -70,6 +75,13 @@ class Planner:
             for shape in self.polygons:
                 for line in shape.polygon_coordinates(ch=True):
                     pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
+
+        if self.checkboxes['debug_points'].is_checked():
+            for node in self.space_graph.vertices:
+                pygame.draw.circle(self.screen, self.light_blue, node.coordinates, 10)
+
+                for neighbor in node.neighbors:
+                    pygame.draw.aaline(self.screen, self.light_blue, node.coordinates, neighbor.coordinates, 5)
 
         if self.checkboxes['tmap'].is_checked() and self.tz_map:
             trav_tree = traverse_tree([], self.tz_map.root)
@@ -101,8 +113,12 @@ class Planner:
                                          node.top_segment.right_point.coordinates, 5)
                         pygame.draw.line(self.screen, self.green, node.bottom_segment.left_point.coordinates,
                                          node.bottom_segment.right_point.coordinates, 5)
-            for vertex in self.points_used:
-                pygame.draw.circle(self.screen, self.debugColor, (vertex[0], vertex[1]), 2)
+
+            if self.checkboxes['debug_points'].is_checked():
+                for vertex in self.points_used:
+                    pygame.draw.circle(self.screen, self.debugColor, (vertex[0], vertex[1]), 2)
+
+
 
     def draw_polygons(self):
         for shape in self.polygons:
@@ -197,6 +213,10 @@ class Planner:
                     self.checkboxes['robot_point'].change_state()
                     return True, self
 
+                elif self.checkboxes['debug_points'].on_checkbox(*mse):
+                    self.checkboxes['debug_points'].change_state()
+                    return True, self
+
                 elif self.checkboxes['tmap'].on_checkbox(*mse):
                     self.checkboxes['tmap'].change_state()
                     return True, self
@@ -241,7 +261,8 @@ class Planner:
             checkbox.update()
         self.draw_polygons()
 
-        if self.checkboxes['convex_hull'].is_checked() or self.checkboxes['tmap'].is_checked():
+        if self.checkboxes['convex_hull'].is_checked() or self.checkboxes['tmap'].is_checked() or self.checkboxes[
+            'debug_points']:
             self.debug_draw()
         pygame.display.update()
 
@@ -273,36 +294,50 @@ class Planner:
 
             for polygon in self.polygons:
                 for new_segment in up[:]:
-                    print("Up segment", new_segment.segment_coordinates)
                     segment_inside, points_used = polygon.contains_path_with_points(new_segment)
                     self.points_used += points_used
                     if any(segment_inside) or len(isect_segments(get_new_segment_list(segments, new_segment))) > 0:
                         print("Removing up segment ", new_segment.segment_coordinates, " has intersections at: ",
-                              [(int(inter[0]), int(inter[1])) for inter in isect_segments(get_new_segment_list(segments, new_segment))])
+                              [(int(inter[0]), int(inter[1])) for inter in
+                               isect_segments(get_new_segment_list(segments, new_segment))])
 
                 for new_segment in down[:]:
-                    print("Down segment", new_segment.segment_coordinates)
                     segment_inside, points_used = polygon.contains_path_with_points(new_segment, up=False)
                     self.points_used += points_used
                     if any(segment_inside) or len(isect_segments(get_new_segment_list(segments, new_segment))) >= 1:
                         print("Removing down segment ", new_segment.segment_coordinates, " has intersections at: ",
-                              [(int(inter[0]), int(inter[1])) for inter in isect_segments(get_new_segment_list(segments, new_segment))])
+                              [(int(inter[0]), int(inter[1])) for inter in
+                               isect_segments(get_new_segment_list(segments, new_segment))])
                         down.remove(new_segment)
 
             up.sort(key=lambda seg: seg.length)
             down.sort(key=lambda seg: seg.length)
-            #Double check to ensure the shortest segment is not inside. 
-            if len(up) > 0 and not any([poly.contains_path(up[0], up=True)for poly in self.polygons]):
+            # Double check to ensure the shortest segment is not inside.
+            if len(up) > 0 and not any([poly.contains_path(up[0], up=True) for poly in self.polygons]):
                 self.tz_map_vertical_segments['up'].append(up[0])
 
-            if len(down) > 0 and not any([poly.contains_path(down[0])for poly in self.polygons]):
+            if len(down) > 0 and not any([poly.contains_path(down[0]) for poly in self.polygons]):
                 self.tz_map_vertical_segments['down'].append(down[0])
 
     def compute_free_space(self):
         self.calculate_vertical_tz_map_segments()
+        # Computes graph nodes from the segments
+        self.space_graph = Graph()
+        gnode_counter = 0
+        for up in self.tz_map_vertical_segments['up']:
+            self.space_graph.add_vertex(Gnode(*up.middle_point, "up_" + str(gnode_counter)))
 
-                #Computes graph nodes from the segments
+        for down in self.tz_map_vertical_segments['down']:
+            self.space_graph.add_vertex(Gnode(*down.middle_point, "down_" + str(gnode_counter)))
 
+        # O(n^2) awwwwwwwwwww yiss
+        for from_node in self.space_graph.vertices:
+            for to_node in self.space_graph.vertices:
+                formed_segment = Segment(Point("from", from_node.x, from_node.y),
+                                         Point("to", to_node.x, to_node.y))
+
+                if not any([poly.contains_path(formed_segment) for poly in self.polygons]) and from_node is not to_node:
+                    self.space_graph.add_edge(from_node, to_node)
 
     def compute_tz_map(self):
         x, y = self.screen.get_size()
