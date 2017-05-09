@@ -80,12 +80,12 @@ class PolygonMesh:
         bbPath = mplPath.Path(crd)
         return bbPath.contains_point(point, radius=r) or bbPath.contains_point(point, radius=-r)
 
-    def contains_path(self, segment, up=True):
+    def contains_path_with_points(self, segment, up=True):
         points = []
         if segment.slope == inf:
             jump = -1 if up else 1
             y_diff = abs(segment.left_point.y - segment.right_point.y) / 10
-            curr_y = segment.left_point.y  if up else segment.left_point.y
+            curr_y = segment.left_point.y if up else segment.left_point.y
 
             for jumps in range(9):
                 points.append([segment.left_point.x, int(curr_y)])
@@ -101,6 +101,10 @@ class PolygonMesh:
 
         return [self.is_inside(point_tuple, r=0) for point_tuple in points], points
 
+    def contains_path(self, segment, up=False):
+        segment_inside, _ = self.contains_path_with_points(segment, up)
+
+        return any(segment_inside)
     def qhull(self):
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:

@@ -247,7 +247,7 @@ class Planner:
 
         return True, self
 
-    def compute_free_space(self):
+    def calculate_vertical_tz_map_segments(self):
         # Get TZ_map segment vertices
         new_vertices, new_edges = get_vertex_edge_relation(self.polygons)
         segments = []
@@ -272,38 +272,37 @@ class Planner:
                         down.append(Segment(Point("p" + name, x, y + 5), Point("q" + name, point[0], new_y - 5)))
 
             for polygon in self.polygons:
-                for indx, new_segment in enumerate(up):
+                for new_segment in up[:]:
                     print("Up segment", new_segment.segment_coordinates)
-                    segment_inside, points_used = polygon.contains_path(new_segment)
+                    segment_inside, points_used = polygon.contains_path_with_points(new_segment)
                     self.points_used += points_used
-                    to_remove = []
                     if any(segment_inside) or len(isect_segments(get_new_segment_list(segments, new_segment))) > 0:
-                        print("Removing ", new_segment.segment_coordinates, " has intersections at: ",
-                              [inter[1] for inter in isect_segments(get_new_segment_list(segments, new_segment))])
-                        to_remove.append(indx)
+                        print("Removing up segment ", new_segment.segment_coordinates, " has intersections at: ",
+                              [(int(inter[0]), int(inter[1])) for inter in isect_segments(get_new_segment_list(segments, new_segment))])
 
-                for i in to_remove[::-1]:
-                    up.pop(i)
-
-                to_remove = []
-                for indx, new_segment in enumerate(down):
+                for new_segment in down[:]:
                     print("Down segment", new_segment.segment_coordinates)
-                    segment_inside, points_used = polygon.contains_path(new_segment, up=False)
+                    segment_inside, points_used = polygon.contains_path_with_points(new_segment, up=False)
                     self.points_used += points_used
                     if any(segment_inside) or len(isect_segments(get_new_segment_list(segments, new_segment))) >= 1:
-                        print("Removing ", new_segment.segment_coordinates, " has intersections at: ",
-                              [inter[1] for inter in isect_segments(get_new_segment_list(segments, new_segment))])
-                        to_remove.append(indx)
+                        print("Removing down segment ", new_segment.segment_coordinates, " has intersections at: ",
+                              [(int(inter[0]), int(inter[1])) for inter in isect_segments(get_new_segment_list(segments, new_segment))])
+                        down.remove(new_segment)
 
-                for i in to_remove[::-1]:
-                    down.pop(i)
+            up.sort(key=lambda seg: seg.length)
+            down.sort(key=lambda seg: seg.length)
+            #Double check to ensure the shortest segment is not inside. 
+            if len(up) > 0 and not any([poly.contains_path(up[0], up=True)for poly in self.polygons]):
+                self.tz_map_vertical_segments['up'].append(up[0])
 
-                up.sort(key=lambda seg: seg.length)
-                down.sort(key=lambda seg: seg.length)
-                if len(up) > 0:
-                    self.tz_map_vertical_segments['up'].append(up[0])
-                if len(down) > 0:
-                    self.tz_map_vertical_segments['down'].append(down[0])
+            if len(down) > 0 and not any([poly.contains_path(down[0])for poly in self.polygons]):
+                self.tz_map_vertical_segments['down'].append(down[0])
+
+    def compute_free_space(self):
+        self.calculate_vertical_tz_map_segments()
+
+                #Computes graph nodes from the segments
+
 
     def compute_tz_map(self):
         x, y = self.screen.get_size()
