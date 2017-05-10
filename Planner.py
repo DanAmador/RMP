@@ -36,7 +36,6 @@ class Planner:
         self.currentPolygon = None
         self.current_dcel = None
         self.tz_map = None
-
         # Debug Flags
         self.polygon_build = False
         self.remove_flag = False
@@ -77,11 +76,13 @@ class Planner:
                     pygame.draw.line(self.screen, self.debugColor, line[0], line[1], 5)
 
         if self.checkboxes['debug_points'].is_checked():
-            for node in self.space_graph.vertices:
+            for node in self.space_graph.nodes:
                 pygame.draw.circle(self.screen, self.light_blue, node.coordinates, 10)
 
-                for neighbor in node.neighbors:
-                    pygame.draw.aaline(self.screen, self.light_blue, node.coordinates, neighbor.coordinates, 5)
+            for edge in self.space_graph.edges:
+                pygame.draw.aaline(self.screen, self.light_blue, edge.from_node.coordinates, edge.to_node.coordinates,
+                                   5)
+
 
         if self.checkboxes['tmap'].is_checked() and self.tz_map:
             trav_tree = traverse_tree([], self.tz_map.root)
@@ -117,8 +118,6 @@ class Planner:
             if self.checkboxes['debug_points'].is_checked():
                 for vertex in self.points_used:
                     pygame.draw.circle(self.screen, self.debugColor, (vertex[0], vertex[1]), 2)
-
-
 
     def draw_polygons(self):
         for shape in self.polygons:
@@ -175,7 +174,9 @@ class Planner:
                                 self.current_dcel = Dcel(new_vertices, new_edges)
                                 self.current_polygon.qhull()
                                 self.compute_tz_map()
-                                self.compute_free_space()
+
+                                self.compute_free_space_new_poly() if len(
+                                    self.polygons) != 1 else self.compute_free_space()
                             else:
                                 print("Polygon intersects itself, create new polygon")
                         else:
@@ -185,8 +186,8 @@ class Planner:
 
                 elif self.buttons["run"].on_button(*mse):
                     if self.checkboxes['robot_point'].is_checked():
-                        self.compute_free_space()
-                    return True, self
+                        self.space_graph.kruskals()
+                        return True, self
 
                 elif self.buttons["remove"].on_button(*mse):
 
@@ -319,25 +320,56 @@ class Planner:
             if len(down) > 0 and not any([poly.contains_path(down[0]) for poly in self.polygons]):
                 self.tz_map_vertical_segments['down'].append(down[0])
 
+    def compute_free_space_new_poly(self):
+        self.calculate_vertical_tz_map_segments()
+        # Computes graph nodes from the segments
+        count_adder = len(self.space_graph.edges)
+        nodes_added = []
+        for up in self.tz_map_vertical_segments['up']:
+            nodes_added.append(Gnode(*up.middle_point, "up_" + str(count_adder)))
+            self.space_graph.add_vertex(nodes_added[-1])
+
+            count_adder += 1
+        for down in self.tz_map_vertical_segments['down']:
+            nodes_added.append(Gnode(*down.middle_point, "down_" + str(count_adder)))
+            self.space_graph.add_vertex(nodes_added[-1])
+            count_adder += 1
+        for node in self.space_graph.nodes:
+            if self.current_polygon.is_inside(node.coordinates):
+                self.space_graph.remove_node(node)
+
+        for from_node in nodes_added:
+            for to_node in self.space_graph.nodes:
+                formed_segment = Segment(Point("from", from_node.x, from_node.y),
+                                         Point("to", to_node.x, to_node.y))
+
+                if not any(
+                        [poly.contains_path(formed_segment) for poly in self.polygons]) and formed_segment.length != 0:
+                    self.space_graph.add_edge(from_node, to_node)
+
+
     def compute_free_space(self):
         self.calculate_vertical_tz_map_segments()
         # Computes graph nodes from the segments
         self.space_graph = Graph()
-        gnode_counter = 0
+        count_adder = 0
         for up in self.tz_map_vertical_segments['up']:
-            self.space_graph.add_vertex(Gnode(*up.middle_point, "up_" + str(gnode_counter)))
-
+            self.space_graph.add_vertex(Gnode(*up.middle_point, "up_" + str(count_adder)))
+            count_adder += 1
         for down in self.tz_map_vertical_segments['down']:
-            self.space_graph.add_vertex(Gnode(*down.middle_point, "down_" + str(gnode_counter)))
-
+            self.space_graph.add_vertex(Gnode(*down.middle_point, "down_" + str(count_adder)))
+            count_adder += 1
         # O(n^2) awwwwwwwwwww yiss
-        for from_node in self.space_graph.vertices:
-            for to_node in self.space_graph.vertices:
+        for from_node in self.space_graph.nodes:
+            for to_node in self.space_graph.nodes:
                 formed_segment = Segment(Point("from", from_node.x, from_node.y),
                                          Point("to", to_node.x, to_node.y))
 
-                if not any([poly.contains_path(formed_segment) for poly in self.polygons]) and from_node is not to_node:
+                if not any(
+                        [poly.contains_path(formed_segment) for poly in self.polygons]) and formed_segment.length != 0:
                     self.space_graph.add_edge(from_node, to_node)
+                    # print("Adding", from_node.coordinates, " to ", to_node.coordinates, " with weight of: ",
+                    #       self.space_graph.edges[-1].weight)
 
     def compute_tz_map(self):
         x, y = self.screen.get_size()
