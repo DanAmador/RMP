@@ -18,6 +18,7 @@ class TZMap:
     def update_root(self, root):
         self.root = root
 
+
     def assign_trapezoid_names(self, id_num=0, node=None):
         """
         Recursive function that assigns a unique name to
@@ -46,22 +47,11 @@ class TZMap:
 
         return id_num
 
-    def print_traversal_path(self, user_point, node=None):
-        """
-        Print to console the traversal path of the given
-        point in the map.
-        :param user_point: destination point
-        :param node: current node on the path to destination
-        :return: None
-        """
+    def find_tz_node(self,user_point, node= None):
         if node is None:
             node = self.root
-            print('Traversal Path:', end='')
-        else:
-            print(' -> ', end='')
-
-        print(" " + node.get_name(), end='')
-
+        if node == node.type == 'tnode':
+            return node.name
         if node.type == 'xnode':
             if user_point.x >= node.end_point.x:
                 self.print_traversal_path(user_point, node.right)
@@ -72,6 +62,29 @@ class TZMap:
                 self.print_traversal_path(user_point, node.above)
             else:
                 self.print_traversal_path(user_point, node.below)
+
+    def print_traversal_path(self, user_point, node=None, path = []):
+        """
+        Print to console the traversal path of the given
+        point in the map.
+        :param user_point: destination point
+        :param node: current node on the path to destination
+        :return: None
+        """
+        if node is None:
+            node = self.root
+
+        path.append(node.get_name())
+        if node.type == 'xnode':
+            if user_point.x >= node.end_point.x:
+                self.print_traversal_path(user_point, node.right, path)
+            else:
+                self.print_traversal_path(user_point, node.left,path)
+        elif node.type == 'ynode':
+            if node.line_segment.isPointAbove(user_point):
+                self.print_traversal_path(user_point, node.above,path)
+            else:
+                self.print_traversal_path(user_point, node.below,path)
 
     def create_adj_matrix(self, unique_points, num_segments, num_trapezoids):
         """

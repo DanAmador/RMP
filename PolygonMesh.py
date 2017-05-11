@@ -6,8 +6,8 @@ import numpy as np
 
 
 class Point:
-    def __init__(self, name, x, y):
-        self.name = name
+    def __init__(self,  x, y, name = None):
+        self.name = name if name is not None else "test "
         self.x = x
         self.y = y
         self.seen = False
@@ -104,6 +104,7 @@ class PolygonMesh:
         segment_inside, _ = self.contains_path_with_points(segment, up)
 
         return any(segment_inside)
+
     def qhull(self):
         self.convexHull = ConvexHull([[vertex.x, vertex.y] for vertex in self.Vertices])
         for segment in self.convexHull.vertices:

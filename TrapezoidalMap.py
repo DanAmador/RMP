@@ -1,20 +1,17 @@
-
-
 from Nodes import XNode, YNode, TrapezoidNode
 from PolygonMesh import Point, Segment
 from TZMap import TZMap
 
 
 def build_tmap(segments, bounding_box_tuple):
-
     x1, y1, x2, y2 = bounding_box_tuple
     line_segments = []
     id_num = 1
     unique_points = []
-    lower_eft = Point('ll', x1, y1)
-    upper_right = Point('ur', x2, y2)
-    lower_right = Point('lr', x2, y1)
-    upper_left = Point('ul', x1, y2)
+    lower_eft = Point(x1, y1, 'll')
+    upper_right = Point(x2, y2, 'ur')
+    lower_right = Point(x2, y1, 'lr')
+    upper_left = Point(x1, y2, 'ul')
     top_segment = Segment(upper_left, upper_right, 'bT')
     bottom_segment = Segment(lower_eft, lower_right, 'bB')
     bounding_box = TrapezoidNode(top_segment, bottom_segment, upper_left, upper_right)
@@ -23,8 +20,8 @@ def build_tmap(segments, bounding_box_tuple):
     for segment in segments:
         x1, y1 = segment[0]
         x2, y2 = segment[1]
-        point1 = Point('P' + str(id_num), x1, y1)
-        point2 = Point('Q' + str(id_num), x2, y2)
+        point1 = Point(x1, y1, 'P' + str(id_num))
+        point2 = Point(x2, y2, 'Q' + str(id_num))
         is_point1_unique = True
         is_point2_unique = True
         # store point only if it is unique
@@ -198,4 +195,3 @@ def traverse_tree(traversed_nodes, node):
         traversed_nodes.append(node)
 
     return traversed_nodes
-

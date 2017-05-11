@@ -8,6 +8,10 @@ class Gnode:
         self.y = y
         self.coordinates = (x, y)
         self.rank = 0
+        self.edges = []
+
+    def add_neighbor(self, edge):
+        self.edges.append(edge)
 
 
 class Edge:
@@ -43,7 +47,10 @@ class Graph:
         if isinstance(vertex_from, Gnode) and isinstance(vertex_to, Gnode):
             vertex_to.rank += 1
             vertex_from.rank += 1
-            self.edges.append(Edge(vertex_from, vertex_to))
+            to_add = Edge(vertex_from, vertex_to)
+            vertex_from.add_neighbor(to_add)
+            vertex_to.add_neighbor(to_add)
+            self.edges.append(to_add)
 
     def add_edges(self, edges):
         for edge in edges:
@@ -67,7 +74,7 @@ class Graph:
         self.edges = list(minimum_spanning_tree)
 
     def find(self, vertice):
-        if self._parent.get(vertice,"error") != vertice:
+        if self._parent.get(vertice, "error") != vertice:
             self._parent[vertice] = self.find(self._parent[vertice])
         return self._parent[vertice]
 
@@ -85,13 +92,3 @@ class Graph:
                 self._parent[root1] = root2
                 if self._rank[root1] == self._rank[root2]:
                     self._rank[root2] += 1
-                    # KRUSKAL(G):
-
-# 1 A = ∅
-# 2 foreach v ∈ G.V:
-# 3    MAKE-SET(v)
-# 4 foreach (u, v) in G.E ordered by weight(u, v), increasing:
-# 5    if FIND-SET(u) ≠ FIND-SET(v):
-# 6       A = A ∪ {(u, v)}
-# 7       UNION(u, v)
-# 8 return A
