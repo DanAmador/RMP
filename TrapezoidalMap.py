@@ -1,10 +1,5 @@
-"""
-This is the main program that reads in the input file and
-builds the trapezoidal map. It then accepts a user input for
-coordinates and calls a method to output the traversal path.
 
-Author: Ajinkya Dhaigude (ad8454@rit.edu)
-"""
+
 from Nodes import XNode, YNode, TrapezoidNode
 from PolygonMesh import Point, Segment
 from TZMap import TZMap

@@ -56,10 +56,8 @@ class Graph:
     def kruskals(self):
         for vertex in self.nodes:
             self.make_set(vertex.name)
-
         minimum_spanning_tree = set()
 
-        print(self._parent)
         self.edges.sort(key=lambda x: x.weight)
         for edge in self.edges:
             if self.find(edge.from_node.name) != self.find(edge.to_node.name):
@@ -69,7 +67,7 @@ class Graph:
         self.edges = list(minimum_spanning_tree)
 
     def find(self, vertice):
-        if self._parent[vertice] != vertice:
+        if self._parent.get(vertice,"error") != vertice:
             self._parent[vertice] = self.find(self._parent[vertice])
         return self._parent[vertice]
 

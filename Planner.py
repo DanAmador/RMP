@@ -5,7 +5,7 @@ from Button import *
 from Checkbox import *
 from DCEL import Dcel
 from PolygonMesh import *
-from TrapezoidalMap import build_tmap, traverse_tree
+from TrapezoidalMap import build_tmap, traverse_tree, find_intersecting_trapezoids
 from poly_point_isect import isect_polygon, isect_segments
 
 
@@ -62,6 +62,7 @@ class Planner:
         self.checkboxes['debug_points'] = Checkbox(110, 40, "Show points")
 
         self.checkboxes['robot_point'] = Checkbox(260, 0, "Robot is a point")
+        self.checkboxes['kruskal'] = Checkbox(260, 20, "Kruskal path")
 
         pygame.display.flip()
 
@@ -82,7 +83,6 @@ class Planner:
             for edge in self.space_graph.edges:
                 pygame.draw.aaline(self.screen, self.light_blue, edge.from_node.coordinates, edge.to_node.coordinates,
                                    5)
-
 
         if self.checkboxes['tmap'].is_checked() and self.tz_map:
             trav_tree = traverse_tree([], self.tz_map.root)
@@ -185,8 +185,9 @@ class Planner:
                     return True, self
 
                 elif self.buttons["run"].on_button(*mse):
-                    if self.checkboxes['robot_point'].is_checked():
+                    if self.checkboxes['kruskal'].is_checked():
                         self.space_graph.kruskals()
+                    if self.checkboxes['robot_point'].is_checked():
                         return True, self
 
                 elif self.buttons["remove"].on_button(*mse):
@@ -217,6 +218,9 @@ class Planner:
                 elif self.checkboxes['debug_points'].on_checkbox(*mse):
                     self.checkboxes['debug_points'].change_state()
                     return True, self
+                elif self.checkboxes['kruskal'].on_checkbox(*mse):
+                    self.checkboxes['kruskal'].change_state()
+                    return True, self
 
                 elif self.checkboxes['tmap'].on_checkbox(*mse):
                     self.checkboxes['tmap'].change_state()
@@ -228,7 +232,6 @@ class Planner:
                 elif self.debug_point_flag:
                     if self.tz_map:
                         self.tz_map.print_traversal_path(Point("Test", *mse))
-                        print("")
                     self.debug_point_flag = False
 
                 elif self.debug_path_flag:
@@ -343,10 +346,15 @@ class Planner:
                 formed_segment = Segment(Point("from", from_node.x, from_node.y),
                                          Point("to", to_node.x, to_node.y))
 
-                if not any(
+                intersecting_trapezoids = []
+                find_intersecting_trapezoids(self.tz_map.root, formed_segment, intersecting_trapezoids)
+                if len(intersecting_trapezoids) > 2:
+                    print("Skipping segment ", formed_segment.segment_coordinates, " passes through ",
+                          len(intersecting_trapezoids), " trapezoids")
+                    continue
+                elif not any(
                         [poly.contains_path(formed_segment) for poly in self.polygons]) and formed_segment.length != 0:
                     self.space_graph.add_edge(from_node, to_node)
-
 
     def compute_free_space(self):
         self.calculate_vertical_tz_map_segments()
@@ -360,11 +368,11 @@ class Planner:
             self.space_graph.add_vertex(Gnode(*down.middle_point, "down_" + str(count_adder)))
             count_adder += 1
         # O(n^2) awwwwwwwwwww yiss
+        self.space_graph.nodes.sort(key=lambda x: x.x)
         for from_node in self.space_graph.nodes:
             for to_node in self.space_graph.nodes:
                 formed_segment = Segment(Point("from", from_node.x, from_node.y),
                                          Point("to", to_node.x, to_node.y))
-
                 if not any(
                         [poly.contains_path(formed_segment) for poly in self.polygons]) and formed_segment.length != 0:
                     self.space_graph.add_edge(from_node, to_node)
